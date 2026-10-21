@@ -1,0 +1,15 @@
+<resources>
+    <string name="app_name">KarooPRO</string>
+    <string name="extension_name">KarooPRO</string>
+    <string name="pro_name">KarooPRO</string>
+    <string name="pro_description">Ride by effort: big zone-colored number and Ride, Effort, Weather, Lap, Analysis, Workout and Bike panels. Put it alone on a page; tap the top to switch power/speed/HR, tap left or right of the panel to flip.</string>
+    <string name="wind_name">PRO Wind</string>
+    <string name="wind_description">Wind compass that turns with your heading: green tailwind, red headwind, yellow crosswind.</string>
+    <string name="wprime_name">PRO W\' Balance</string>
+    <string name="wprime_description">W\' balance in kJ (Skiba model, CP from your FTP unless set in KarooPRO).</string>
+    <string name="headwind_name">PRO Headwind</string>
+    <string name="headwind_description">Headwind (+) or tailwind (-) for your direction of travel, from Open-Meteo.</string>
+    <string name="action_next_panel">KarooPRO: next panel</string>
+    <string name="action_previous_panel">KarooPRO: previous panel</string>
+    <string name="action_cycle_metric">KarooPRO: switch power/speed/HR</string>
+</resources>

@@ -1,0 +1,361 @@
+package io.github.mschache.karoopro.ui.field
+
+import io.github.mschache.karoopro.calc.Fmt
+import io.github.mschache.karoopro.calc.LapCompare
+import io.github.mschache.karoopro.calc.Trend
+import io.github.mschache.karoopro.calc.Wind
+import io.github.mschache.karoopro.calc.ZoneColors
+import io.github.mschache.karoopro.calc.ZoneKind
+import io.github.mschache.karoopro.calc.ZoneMath
+import io.github.mschache.karoopro.calc.bucketAverages
+import io.github.mschache.karoopro.data.AlertStyle
+import io.github.mschache.karoopro.data.BigMetric
+import io.github.mschache.karoopro.data.ColorMode
+import io.github.mschache.karoopro.data.Metric
+import io.github.mschache.karoopro.data.Panel
+import io.github.mschache.karoopro.data.Settings
+import io.github.mschache.karoopro.data.Source
+import io.github.mschache.karoopro.data.ThemeMode
+import io.github.mschache.karoopro.data.WorkoutOverlay
+import io.hammerhead.karooext.models.DataType
+import java.time.Instant
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+
+object FieldModelBuilder {
+    private val hourFormat = DateTimeFormatter.ofPattern("H").withZone(ZoneId.systemDefault())
+    private val SHIFT_COUNT = Source.Karoo(DataType.Type.SHIFTING_COUNT, DataType.Field.SHIFTING_COUNT)
+
+    fun palette(theme: ThemeMode, systemDark: Boolean): Palette = when (theme) {
+        ThemeMode.AUTO -> if (systemDark) Palette.DARK else Palette.LIGHT
+        ThemeMode.DARK -> Palette.DARK
+        ThemeMode.LIGHT -> Palette.LIGHT
+    }
+
+    fun build(
+        src: RideSource,
+        panel: Panel,
+        panels: List<Panel>,
+        widthDp: Float,
+        heightDp: Float,
+        density: Float,
+        interactive: Boolean,
+        systemDark: Boolean,
+    ): FieldModel {
+        val s = src.settings
+        val p = palette(s.theme, systemDark)
+        val hero = hero(src, s, p)
+        val pageBg = if (s.colorMode == ColorMode.TINT) hero.background else p.background
+        return FieldModel(
+            palette = p,
+            widthDp = widthDp,
+            heightDp = heightDp,
+            density = density,
+            hero = hero,
+            panels = panels,
+            panel = panel,
+            content = content(src, panel, p),
+            overlay = overlay(src, s),
+            interactive = interactive,
+            pageBackground = pageBg,
+        )
+    }
+
+    /** Karoo data types a frame of [panel] reads; the field keeps them streaming. */
+    fun requiredTypes(panel: Panel, s: Settings): Set<String> = buildSet {
+        listOf(
+            Metric.POWER, Metric.POWER_3S, Metric.SPEED, Metric.HEART_RATE, Metric.AVG_POWER,
+            Metric.AVG_SPEED, Metric.MAX_SPEED, Metric.AVG_HR, Metric.HR_PERCENT_MAX,
+        ).mapNotNullTo(this) { it.karoo?.typeId }
+        when (panel) {
+            Panel.RIDE -> s.rideTiles.mapNotNullTo(this) { it.karoo?.typeId }
+            Panel.EFFORT -> {
+                listOf(Metric.GRADE, Metric.VAM, Metric.ASCENT, Metric.DISTANCE).mapNotNullTo(this) { it.karoo?.typeId }
+                add(DataType.Type.DISTANCE_TO_DESTINATION)
+            }
+            Panel.LAP -> {
+                add(DataType.Type.LAP_NUMBER)
+                s.lapFields.forEach {
+                    add(it.current.typeId)
+                    add(it.previous.typeId)
+                }
+            }
+            Panel.ANALYSIS -> listOf(Metric.NP, Metric.TSS, Metric.IF, Metric.ASCENT, Metric.WORK).mapNotNullTo(this) { it.karoo?.typeId }
+            Panel.BIKE -> {
+                add(DataType.Type.SHIFTING_GEARS)
+                add(DataType.Type.SHIFTING_BATTERY)
+                add(DataType.Type.SHIFTING_COUNT)
+                add(DataType.Type.SMOOTHED_3S_AVERAGE_PEDAL_POWER_BALANCE)
+                add(DataType.Type.CADENCE)
+            }
+            Panel.WEATHER, Panel.WORKOUT -> Unit
+        }
+    }
+
+    private fun hero(src: RideSource, s: Settings, p: Palette): HeroModel {
+        val profile = src.profile
+        val u = profile.units
+        val power = src.value(Metric.POWER_3S) ?: src.value(Metric.POWER)
+        val speed = src.value(Metric.SPEED)
+        val hr = src.value(Metric.HEART_RATE)
+        // No power meter: start on speed, colored by heart rate.
+        val big = if (s.bigMetric == BigMetric.POWER && !src.powerAvailable) BigMetric.SPEED else s.bigMetric
+        val powerZone = ZoneMath.zoneOf(power, profile.powerZones)
+        val hrZone = ZoneMath.zoneOf(hr, profile.hrZones)
+        val (zone, kind) = when (big) {
+            BigMetric.POWER -> powerZone to ZoneKind.POWER
+            BigMetric.SPEED -> if (src.powerAvailable) powerZone to ZoneKind.POWER else hrZone to ZoneKind.HR
+            BigMetric.HR -> hrZone to ZoneKind.HR
+        }
+        val zoneCount = if (kind == ZoneKind.POWER) profile.powerZones.size else profile.hrZones.size
+        val zoneColor = zone?.let { ZoneColors.color(kind, it, zoneCount) }
+        val zoneColors = (1..zoneCount).map { ZoneColors.color(kind, it, zoneCount) }
+        fun powerColor() = powerZone?.let { ZoneColors.color(ZoneKind.POWER, it, profile.powerZones.size) }
+        fun hrColor() = hrZone?.let { ZoneColors.color(ZoneKind.HR, it, profile.hrZones.size) }
+
+        val (value, unit) = when (big) {
+            BigMetric.POWER -> Fmt.int(power) to "W"
+            BigMetric.SPEED -> Fmt.speed(speed, u) to Fmt.speedUnit(u)
+            BigMetric.HR -> Fmt.int(hr) to "bpm"
+        }
+        val stats = when (big) {
+            BigMetric.POWER -> listOf(
+                Stat("FTP", Fmt.int(power?.let { it * 100 / profile.ftp.coerceAtLeast(1) }), "%"),
+                Stat("AVG", Fmt.int(src.value(Metric.AVG_POWER)), "W"),
+            )
+            BigMetric.SPEED -> listOf(
+                Stat("AVG", Fmt.speed(src.value(Metric.AVG_SPEED), u)),
+                Stat("MAX", Fmt.speed(src.value(Metric.MAX_SPEED), u)),
+            )
+            BigMetric.HR -> listOf(
+                Stat("MAX", Fmt.int(hr?.let { it * 100 / profile.maxHr.coerceAtLeast(1) }), "%"),
+                Stat("AVG", Fmt.int(src.value(Metric.AVG_HR)), "bpm"),
+            )
+        }
+        val cards = BigMetric.entries.filter { it != big }.map { other ->
+            when (other) {
+                BigMetric.POWER -> CardModel("POWER", Fmt.int(power), "W", Fmt.int(src.value(Metric.AVG_POWER)), powerColor())
+                BigMetric.SPEED -> CardModel("SPEED", Fmt.speed(speed, u), Fmt.speedUnit(u), Fmt.speed(src.value(Metric.AVG_SPEED), u), null)
+                BigMetric.HR -> CardModel("HEART", Fmt.int(hr), "bpm", Fmt.int(src.value(Metric.AVG_HR)), hrColor())
+            }
+        }
+
+        var background = p.background
+        var number = zoneColor ?: p.text
+        var text = p.text
+        var dim = p.dim
+        when (s.colorMode) {
+            ColorMode.TINT -> if (zoneColor != null) {
+                background = ZoneColors.blend(zoneColor, p.background, if (p.dark) 0.22f else 0.38f)
+                number = if (p.dark) zoneColor else p.text
+            }
+            ColorMode.FILL -> if (zoneColor != null) {
+                background = zoneColor
+                number = ZoneColors.onColor(zoneColor)
+                text = number
+                dim = ZoneColors.blend(number, zoneColor, 0.7f)
+            }
+            ColorMode.NUMBER -> if (zoneColor != null && !p.dark) {
+                // Yellow and light green are unreadable on white; darken them for the light theme.
+                number = ZoneColors.blend(zoneColor, 0xFF000000.toInt(), 0.72f)
+            }
+        }
+        return HeroModel(
+            big = big,
+            options = BigMetric.entries,
+            value = value,
+            unit = unit,
+            zone = zone,
+            zoneColor = zoneColor,
+            zoneColors = zoneColors,
+            background = background,
+            numberColor = number,
+            textColor = text,
+            dimColor = dim,
+            stats = stats,
+            cards = cards,
+        )
+    }
+
+    private fun content(src: RideSource, panel: Panel, p: Palette): PanelContent {
+        val s = src.settings
+        val profile = src.profile
+        val u = profile.units
+        return when (panel) {
+            Panel.RIDE -> RideContent(
+                s.rideTiles.map { m ->
+                    TileModel(m.label, m.format(src.value(m), u), m.unit(u), m.graph?.let { src.history(it, 300) }, p.accent)
+                },
+            )
+
+            Panel.EFFORT -> {
+                val usePower = src.powerAvailable || src.history(Metric.POWER_3S, 600).any { it != null }
+                val metric = if (usePower) Metric.POWER_3S else Metric.HEART_RATE
+                val zones = if (usePower) profile.powerZones else profile.hrZones
+                val kind = if (usePower) ZoneKind.POWER else ZoneKind.HR
+                val samples = src.history(metric, 600).map { it?.toDouble() ?: Double.NaN }.toDoubleArray()
+                val bars = bucketAverages(samples, 600, 30).map { v ->
+                    val zone = ZoneMath.zoneOf(v, zones)
+                    v?.toFloat() to (zone?.let { ZoneColors.color(kind, it, zones.size) } ?: p.faint)
+                }
+                val scaleMax = maxOf(
+                    bars.maxOfOrNull { it.first ?: 0f } ?: 0f,
+                    if (usePower) profile.ftp * 1.2f else profile.maxHr.toFloat() * 0.8f,
+                )
+                val distance = src.value(Metric.DISTANCE)
+                val behind = src.terrainBehind(5_000.0)
+                val ahead = src.terrainAhead(5_000.0)
+                val here = distance ?: behind.lastOrNull()?.distance ?: 0.0
+                val terrain = behind.map { (it.distance - here).toFloat() to it.elevation.toFloat() } +
+                    ahead.map { it.distance.toFloat() to it.elevation.toFloat() }
+                val wBal = src.wPrimeBalance
+                EffortContent(
+                    bars = bars,
+                    barMax = scaleMax,
+                    wPrime = Stat("W' BAL", Fmt.decimal(wBal?.div(1000), 1), "kJ"),
+                    wPrimeFraction = wBal?.let { (it / src.wPrimeMax).toFloat().coerceIn(0f, 1f) },
+                    stats = listOf(
+                        Stat("GRADE", Fmt.decimal(src.value(Metric.GRADE), 1), "%"),
+                        Stat("VAM", Fmt.int(src.value(Metric.VAM)), "m/h"),
+                        Stat("ASCENT", Fmt.elevation(src.value(Metric.ASCENT), u), Fmt.elevationUnit(u)),
+                    ),
+                    terrain = terrain,
+                    terrainLabel = if (ahead.isNotEmpty()) "ROUTE ±5 ${Fmt.distanceUnit(u).uppercase()}" else "LAST 5 ${Fmt.distanceUnit(u).uppercase()}",
+                )
+            }
+
+            Panel.WEATHER -> weather(src, p)
+
+            Panel.LAP -> {
+                val lap = src.value(Metric.LAP_NUMBER)?.toInt()
+                val hasPrevious = (lap ?: 1) > 1
+                LapContent(
+                    title = lap?.let { "LAP $it" + if (hasPrevious) "  vs LAP ${it - 1}" else "" } ?: "LAP",
+                    fields = s.lapFields.map { lm ->
+                        val cur = src.value(lm.current)
+                        val prev = if (hasPrevious) src.value(lm.previous) else null
+                        LapFieldModel(lm.label, lm.format(cur, u), lm.unit(u), prev?.let { lm.format(it, u) }, if (hasPrevious) LapCompare.trend(cur, prev) else Trend.NONE)
+                    },
+                )
+            }
+
+            Panel.ANALYSIS -> {
+                val powerSeconds = src.powerZoneSeconds
+                val usePower = powerSeconds.sum() > 0
+                val seconds = if (usePower) powerSeconds else src.hrZoneSeconds
+                val kind = if (usePower) ZoneKind.POWER else ZoneKind.HR
+                val count = maxOf(seconds.size, if (usePower) profile.powerZones.size else profile.hrZones.size)
+                val maxSec = (seconds.maxOrNull() ?: 0L).coerceAtLeast(1L)
+                AnalysisContent(
+                    best = listOf(5 to "5S", 60 to "1M", 300 to "5M", 1200 to "20M").map { (sec, label) ->
+                        Stat(label, Fmt.int(src.best(sec)), "W")
+                    },
+                    zoneTitle = if (usePower) "TIME IN POWER ZONES" else "TIME IN HR ZONES",
+                    zones = (1..count).map { z ->
+                        val sec = seconds.getOrElse(z - 1) { 0L }
+                        ZoneBar("Z$z", sec, sec.toFloat() / maxSec, ZoneColors.color(kind, z, count))
+                    },
+                    totals = listOf(
+                        Stat("NP", Fmt.int(src.value(Metric.NP)), "W"),
+                        Stat("TSS", Fmt.int(src.value(Metric.TSS))),
+                        Stat("IF", Fmt.decimal(src.value(Metric.IF), 2)),
+                        Stat("CLIMB", Fmt.elevation(src.value(Metric.ASCENT), u), Fmt.elevationUnit(u)),
+                        Stat("WORK", Fmt.int(src.value(Metric.WORK)), "kJ"),
+                    ),
+                )
+            }
+
+            Panel.WORKOUT -> WorkoutContent(src.workout, src.workout?.kind?.unit.orEmpty())
+
+            Panel.BIKE -> {
+                val g = src.gearing
+                val b = src.batteries
+                val left = src.value(Metric.BALANCE)
+                BikeContent(
+                    gearing = g,
+                    gears = if (g == null) Fmt.NONE else buildString {
+                        if (!g.isOneBy) append("F ${g.frontGear ?: "-"}/${g.frontMax ?: "-"}  ")
+                        append("R ${g.rearGear ?: "-"}/${g.rearMax ?: "-"}")
+                    },
+                    teeth = if (g?.frontTeeth != null && g.rearTeeth != null) "${g.frontTeeth}T · ${g.rearTeeth}T" else "",
+                    batteries = buildList {
+                        if (b.frontDerailleur != null) add("FD" to b.frontDerailleur)
+                        if (b.rearDerailleur != null) add("RD" to b.rearDerailleur)
+                        if (b.frontDerailleur == null && b.rearDerailleur == null) add("SHIFT" to b.shifting)
+                        add("PM" to b.powerMeter)
+                    },
+                    balance = Stat("BALANCE", Fmt.balance(left)),
+                    balanceLeft = left?.let { (it / 100).toFloat() },
+                    stats = listOf(
+                        Stat("SHIFTS", Fmt.int(src.value(SHIFT_COUNT))),
+                        Stat("RATIO", Fmt.decimal(g?.ratio, 2)),
+                        Stat("CADENCE", Fmt.int(src.value(Metric.CADENCE)), "rpm"),
+                    ),
+                )
+            }
+        }
+    }
+
+    private fun weather(src: RideSource, p: Palette): WeatherContent {
+        val u = src.profile.units
+        val w = src.weather
+        val heading = src.heading
+        if (!src.settings.weatherEnabled) return WeatherContent("Weather is off in KarooPRO settings", null, Fmt.NONE, "", null, emptyList(), emptyList())
+        if (w == null) {
+            val msg = when (src.weatherStatus) {
+                io.github.mschache.karoopro.weather.WeatherStatus.NO_POSITION -> "Waiting for GPS position…"
+                io.github.mschache.karoopro.weather.WeatherStatus.ERROR -> "Weather unavailable\nNeeds WiFi or the Companion app"
+                else -> "Loading weather…"
+            }
+            return WeatherContent(msg, null, Fmt.NONE, "", null, emptyList(), emptyList())
+        }
+        val comp = if (heading != null && w.windSpeed != null && w.windFromDeg != null) Wind.components(w.windSpeed, w.windFromDeg, heading) else null
+        val toDeg = w.windFromDeg?.let { Wind.normalize(it + 180 - (heading ?: 0.0)).toFloat() }
+        val (label, value) = when (comp?.kind) {
+            null -> "WIND" to w.windSpeed
+            io.github.mschache.karoopro.calc.WindKind.HEAD -> "HEAD" to comp.head
+            io.github.mschache.karoopro.calc.WindKind.TAIL -> "TAIL" to -comp.head
+            io.github.mschache.karoopro.calc.WindKind.CROSS -> "CROSS" to kotlin.math.abs(comp.cross)
+        }
+        return WeatherContent(
+            message = null,
+            kind = comp?.kind,
+            component = label + " " + Fmt.int(value?.let { Fmt.speedValue(it, u) }),
+            unit = Fmt.speedUnit(u),
+            relativeToDeg = toDeg,
+            stats = listOf(
+                Stat("WIND", Fmt.int(w.windSpeed?.let { Fmt.speedValue(it, u) }), Fmt.speedUnit(u)),
+                Stat("GUST", Fmt.int(w.gust?.let { Fmt.speedValue(it, u) }), Fmt.speedUnit(u)),
+                Stat("RAIN", Fmt.int(w.rainChance?.toDouble()), "%"),
+                Stat("TEMP", Fmt.temperature(w.temperature, u), Fmt.temperatureUnit(u)),
+            ),
+            hours = w.hours.map { h ->
+                val c = if (heading != null && h.windSpeed != null && h.windFromDeg != null) Wind.components(h.windSpeed, h.windFromDeg, heading) else null
+                HourModel(
+                    label = hourFormat.format(Instant.ofEpochSecond(h.epochSeconds)),
+                    speed = Fmt.int(h.windSpeed?.let { Fmt.speedValue(it, u) }),
+                    relativeToDeg = h.windFromDeg?.let { Wind.normalize(it + 180 - (heading ?: 0.0)).toFloat() },
+                    kind = c?.kind,
+                )
+            },
+        )
+    }
+
+    private fun overlay(src: RideSource, s: Settings): OverlayModel? {
+        if (s.alertStyle == AlertStyle.OFF) return null
+        val full = s.alertStyle == AlertStyle.FULL
+        return when (val o = src.overlay) {
+            null -> null
+            is WorkoutOverlay.NextStep -> OverlayModel.NextStep(o.nextStep, o.stepCount, o.secondsLeft, full)
+            is WorkoutOverlay.NewTarget -> {
+                val st = o.state
+                OverlayModel.NewTarget(
+                    title = "STEP ${st.stepNumber}/${st.stepCount} · ${st.kind.label}",
+                    target = if (st.low != null && st.high != null) "${st.low}–${st.high}" else "GO",
+                    unit = st.kind.unit,
+                    full = full,
+                )
+            }
+        }
+    }
+}

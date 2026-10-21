@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<ExtensionInfo
+    displayName="@string/extension_name"
+    icon="@drawable/ic_karoopro"
+    id="karoopro"
+    scansDevices="false">
+    <DataType
+        description="@string/pro_description"
+        displayName="@string/pro_name"
+        graphical="true"
+        icon="@drawable/ic_karoopro"
+        typeId="pro" />
+    <DataType
+        description="@string/wind_description"
+        displayName="@string/wind_name"
+        graphical="true"
+        icon="@drawable/ic_wind"
+        typeId="wind" />
+    <DataType
+        description="@string/wprime_description"
+        displayName="@string/wprime_name"
+        graphical="false"
+        icon="@drawable/ic_karoopro"
+        typeId="wprime" />
+    <DataType
+        description="@string/headwind_description"
+        displayName="@string/headwind_name"
+        graphical="false"
+        icon="@drawable/ic_wind"
+        typeId="headwind" />
+    <BonusAction
+        actionId="next-panel"
+        displayName="@string/action_next_panel" />
+    <BonusAction
+        actionId="previous-panel"
+        displayName="@string/action_previous_panel" />
+    <BonusAction
+        actionId="cycle-metric"
+        displayName="@string/action_cycle_metric" />
+</ExtensionInfo>

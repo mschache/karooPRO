@@ -1,0 +1,65 @@
+name: Build
+
+on:
+  push:
+    branches: ["**"]
+    tags: ["v*"]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "21"
+          cache: gradle
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Unit tests and lint
+        run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
+
+      - name: Check the tag matches the app version
+        if: startsWith(github.ref, 'refs/tags/v')
+        run: |
+          version=$(grep '^karoopro.version=' gradle.properties | cut -d= -f2)
+          if [ "v$version" != "${GITHUB_REF_NAME}" ]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match karoopro.version=$version in gradle.properties"
+            exit 1
+          fi
+
+      - name: Signed release build
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.KEYSTORE_PASSWORD }}
+          KEY_ALIAS: ${{ secrets.KEY_ALIAS }}
+          KEY_PASSWORD: ${{ secrets.KEY_PASSWORD }}
+        run: |
+          test -n "$KEYSTORE_BASE64" || { echo "Release signing secrets are missing"; exit 1; }
+          ./gradlew --no-daemon assembleRelease generateManifest
+          # The Karoo only updates when latestVersionCode grows; make sure the manifest and APK agree.
+          code=$(python3 -c "import json;print(json.load(open('app/manifest.json'))['latestVersionCode'])")
+          apk_code=$("$ANDROID_HOME"/build-tools/*/aapt2 dump badging app/build/outputs/apk/release/app-release.apk | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p")
+          test "$code" = "$apk_code" || { echo "manifest versionCode $code != APK $apk_code"; exit 1; }
+
+      - name: Publish GitHub release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          make_latest: true
+          generate_release_notes: true
+          files: |
+            app/build/outputs/apk/release/app-release.apk
+            app/manifest.json
+            docs/karoopro.png
+            docs/screenshot-1.png
+            docs/screenshot-2.png
+            docs/screenshot-3.png
