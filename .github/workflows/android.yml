@@ -21,7 +21,7 @@ jobs:
           java-version: "21"
           cache: gradle
 
-      - uses: android-actions/setup-android@v3
+      # ubuntu-latest ships the Android SDK (ANDROID_HOME); AGP fetches any missing platform.
 
       - name: Unit tests and lint
         run: ./gradlew --no-daemon testDebugUnitTest lintDebug assembleDebug
@@ -47,7 +47,8 @@ jobs:
           ./gradlew --no-daemon assembleRelease generateManifest
           # The Karoo only updates when latestVersionCode grows; make sure the manifest and APK agree.
           code=$(python3 -c "import json;print(json.load(open('app/manifest.json'))['latestVersionCode'])")
-          apk_code=$("$ANDROID_HOME"/build-tools/*/aapt2 dump badging app/build/outputs/apk/release/app-release.apk | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p")
+          aapt2=$(ls -d "$ANDROID_HOME"/build-tools/*/ | sort -V | tail -1)aapt2
+          apk_code=$("$aapt2" dump badging app/build/outputs/apk/release/app-release.apk | sed -n "s/.*versionCode='\([0-9]*\)'.*/\1/p")
           test "$code" = "$apk_code" || { echo "manifest versionCode $code != APK $apk_code"; exit 1; }
 
       - name: Publish GitHub release
