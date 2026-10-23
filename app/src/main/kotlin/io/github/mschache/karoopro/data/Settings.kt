@@ -49,6 +49,10 @@ data class Settings(
     val alertBeep: Boolean = true,
     val countdownBeeps: Boolean = true,
     val weatherEnabled: Boolean = true,
+    /** Map layers while navigating: wind on the route ahead, climbs by grade, wind arrows. */
+    val mapWindRoute: Boolean = true,
+    val mapClimbs: Boolean = true,
+    val mapWindArrows: Boolean = true,
 ) {
     /** Panel order with any panels added in a newer version appended. */
     val orderedPanels: List<PanelSetting>

@@ -6,6 +6,8 @@ import io.github.mschache.karoopro.ui.field.ProFieldDataType
 import io.github.mschache.karoopro.ui.field.WindDataType
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.extension.KarooExtension
+import io.hammerhead.karooext.internal.Emitter
+import io.hammerhead.karooext.models.MapEffect
 
 /** Entry point the Karoo binds to; started on install and at every boot. */
 class KarooProExtension : KarooExtension(EXTENSION_ID, BuildConfig.VERSION_NAME) {
@@ -18,6 +20,11 @@ class KarooProExtension : KarooExtension(EXTENSION_ID, BuildConfig.VERSION_NAME)
             WPrimeDataType(g),
             HeadwindDataType(g),
         )
+    }
+
+    override fun startMap(emitter: Emitter<MapEffect>) {
+        val job = graph.mapLayers.run(emitter)
+        emitter.setCancellable { job.cancel() }
     }
 
     override fun onBonusAction(actionId: String) {

@@ -68,6 +68,39 @@ object OpenMeteo {
         lng,
     )
 
+    /** Several points in one request (Open-Meteo then answers with a JSON array); wind only, next 6 h. */
+    fun routeUrl(points: List<Pair<Double, Double>>): String {
+        val lats = points.joinToString(",") { String.format(Locale.US, "%.3f", it.first) }
+        val lngs = points.joinToString(",") { String.format(Locale.US, "%.3f", it.second) }
+        return "https://api.open-meteo.com/v1/forecast?latitude=$lats&longitude=$lngs" +
+            "&current=wind_speed_10m,wind_direction_10m" +
+            "&hourly=wind_speed_10m,wind_direction_10m&forecast_hours=6&wind_speed_unit=ms&timeformat=unixtime"
+    }
+
+    /**
+     * Wind (speed m/s, direction from) per requested point, for the time each point will be reached:
+     * [etaSeconds] per point. Uses current conditions when the ETA is within 30 minutes.
+     */
+    fun parseRoute(body: String, etaSeconds: List<Long>, nowMs: Long): List<Pair<Double, Double>?> {
+        val trimmed = body.trimStart()
+        val responses = if (trimmed.startsWith("[")) {
+            json.decodeFromString(kotlinx.serialization.builtins.ListSerializer(OpenMeteoResponse.serializer()), body)
+        } else {
+            listOf(json.decodeFromString(OpenMeteoResponse.serializer(), body))
+        }
+        val nowS = nowMs / 1000
+        return responses.mapIndexed { i, r ->
+            val eta = etaSeconds.getOrElse(i) { nowS }
+            val current = r.current?.let { c -> c.windSpeed?.let { s -> c.windDirection?.let { d -> s to d } } }
+            if (eta - nowS < 1800 && current != null) return@mapIndexed current
+            val h = r.hourly ?: return@mapIndexed current
+            val idx = h.time.indices.minByOrNull { kotlin.math.abs(h.time[it] - eta) } ?: return@mapIndexed current
+            val s = h.windSpeed.getOrNull(idx)
+            val d = h.windDirection.getOrNull(idx)
+            if (s != null && d != null) s to d else current
+        }
+    }
+
     fun parse(body: String, nowMs: Long): WeatherData {
         val r = json.decodeFromString(OpenMeteoResponse.serializer(), body)
         val h = r.hourly

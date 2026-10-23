@@ -158,6 +158,11 @@ fun SettingsScreen() {
         Toggle("Countdown beeps 5-4-3-2-1", settings.countdownBeeps) { v -> update { it.copy(countdownBeeps = v) } }
         Toggle("Karoo pop-up on pages without KarooPRO", settings.systemAlert) { v -> update { it.copy(systemAlert = v) } }
 
+        Section("Map layers (while navigating)")
+        Toggle("Wind on the route ahead (green tail, yellow cross, red head)", settings.mapWindRoute) { v -> update { it.copy(mapWindRoute = v) } }
+        Toggle("Climbs by grade (grey to black band, darker = steeper)", settings.mapClimbs) { v -> update { it.copy(mapClimbs = v) } }
+        Toggle("Wind arrows every 5 km", settings.mapWindArrows) { v -> update { it.copy(mapWindArrows = v) } }
+
         Section("Weather")
         Toggle("Fetch weather (Open-Meteo, needs WiFi or phone)", settings.weatherEnabled) { v -> update { it.copy(weatherEnabled = v) } }
         Spacer(Modifier.height(24.dp))

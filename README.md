@@ -37,6 +37,16 @@ With no power meter, KarooPRO starts on speed and colors by heart rate.
   <img src="docs/screenshot-alert.png" width="240" alt="Next-step countdown">
 </p>
 
+## Map layers
+
+While you navigate a route, KarooPRO draws on top of the Karoo's own map:
+
+- **Wind on the route ahead (next 30 km):** green for tailwind, yellow for crosswind, red for headwind. Each point uses the Open-Meteo forecast for the hour you'll actually get there, based on your average speed.
+- **Climbs by grade (next 50 km):** a grey-to-black band under the route, darker for steeper: 3–6 %, 6–9 %, 9–12 %, 12 %+.
+- **Wind arrows every 5 km:** they point where the wind blows, in the same colors.
+
+Each layer can be switched off in KarooPRO's settings. The layers need an active navigation with a GPS fix, and the wind needs WiFi or the Companion app.
+
 ## Install
 
 **Karoo 3, with the Companion app:**

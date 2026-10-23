@@ -1,0 +1,79 @@
+package io.github.mschache.karoopro
+
+import io.github.mschache.karoopro.calc.GeoPoint
+import io.github.mschache.karoopro.calc.GradeRuns
+import io.github.mschache.karoopro.calc.Polyline
+import io.github.mschache.karoopro.calc.ProfilePoint
+import io.github.mschache.karoopro.calc.RouteGeometry
+import io.github.mschache.karoopro.calc.RouteRun
+import io.github.mschache.karoopro.calc.RouteWind
+import io.github.mschache.karoopro.calc.WindRuns
+import io.github.mschache.karoopro.calc.encodePolyline
+import io.github.mschache.karoopro.calc.mergeRuns
+import io.github.mschache.karoopro.weather.OpenMeteo
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+
+class RouteTest {
+    // About 11.1 km due north, then 11.1 km due east (near the equator: 0.1° ≈ 11.1 km).
+    private val route = RouteGeometry(listOf(GeoPoint(0.0, 0.0), GeoPoint(0.1, 0.0), GeoPoint(0.1, 0.1)))
+
+    @Test fun polylineRoundTrip() {
+        val pts = listOf(GeoPoint(47.37123, 8.54171), GeoPoint(47.38001, 8.55002), GeoPoint(46.9, 7.4))
+        val decoded = Polyline.decode(encodePolyline(pts), 5)
+        assertEquals(pts.size, decoded.size)
+        pts.zip(decoded).forEach { (p, d) ->
+            assertEquals(p.lat, d.first, 1e-5)
+            assertEquals(p.lng, d.second, 1e-5)
+        }
+        // Google's documented example encodes to this exact string.
+        assertEquals("_p~iF~ps|U_ulLnnqC_mqNvxq`@", encodePolyline(listOf(GeoPoint(38.5, -120.2), GeoPoint(40.7, -120.95), GeoPoint(43.252, -126.453))))
+    }
+
+    @Test fun distancesAndLookup() {
+        assertEquals(11_119.5, route.cumulative[1], 1.0)
+        assertEquals(2 * 11_119.5, route.length, 2.0)
+        val mid = route.pointAt(route.cumulative[1] / 2)
+        assertEquals(0.05, mid.lat, 1e-6)
+        assertEquals(0.0, route.bearingAt(5_000.0), 0.5) // heading north
+        assertEquals(90.0, route.bearingAt(16_000.0), 0.5) // heading east
+        val slice = route.slice(5_000.0, 15_000.0)
+        assertEquals(3, slice.size) // start, the corner, end
+    }
+
+    @Test fun mergeJoinsSameBucketAndDropsUncolored() {
+        val merged = mergeRuns(listOf(RouteRun(0.0, 100.0, 1), RouteRun(100.0, 200.0, 1), RouteRun(200.0, 300.0, -1), RouteRun(300.0, 400.0, 2)))
+        assertEquals(listOf(RouteRun(0.0, 200.0, 1), RouteRun(300.0, 400.0, 2)), merged)
+    }
+
+    @Test fun gradeBuckets() {
+        // Flat 1 km, then 1 km at 8 %, then 500 m at 13 %.
+        val profile = listOf(ProfilePoint(0.0, 100.0), ProfilePoint(1000.0, 100.0), ProfilePoint(2000.0, 180.0), ProfilePoint(2500.0, 245.0))
+        val runs = GradeRuns.runs(profile, 0.0, 2500.0, step = 100.0, window = 100.0)
+        assertTrue(runs.none { it.to <= 1000.0 }) // the flat part has no color
+        assertTrue(runs.any { it.bucket == 1 && it.from >= 1000.0 && it.to <= 2000.0 }) // 6–9 %
+        assertEquals(3, runs.last().bucket) // ≥ 12 %
+        assertEquals(-1, GradeRuns.bucket(-8.0)) // descents are not colored
+    }
+
+    @Test fun windRunsFollowTheRouteDirection() {
+        // Wind from the north: headwind on the northbound leg, crosswind on the eastbound leg.
+        val runs = WindRuns.runs(route, listOf(RouteWind(0.0, 5.0, 0.0)), 0.0, route.length)
+        assertEquals(2, runs.first().bucket) // head
+        assertEquals(1, runs.last().bucket) // cross
+        assertTrue(WindRuns.runs(route, listOf(RouteWind(0.0, 0.5, 0.0)), 0.0, route.length).isEmpty()) // calm
+    }
+
+    @Test fun routeWeatherPicksForecastHourByArrivalTime() {
+        val one = """{"latitude":47.0,"longitude":8.0,
+            "current":{"time":1000,"wind_speed_10m":2.0,"wind_direction_10m":90},
+            "hourly":{"time":[3600,7200,10800],"wind_speed_10m":[3.0,6.0,9.0],"wind_direction_10m":[100,200,300]}}"""
+        val body = "[$one,$one]"
+        val now = 3_000_000L // 3000 s
+        val winds = OpenMeteo.parseRoute(body, listOf(3_000L, 10_500L), now)
+        assertEquals(2.0 to 90.0, winds[0]) // arriving now: current conditions
+        assertEquals(9.0 to 300.0, winds[1]) // arriving in ~2 h: the 10800 s forecast hour
+        assertTrue(OpenMeteo.routeUrl(listOf(47.0 to 8.0, 47.1 to 8.1)).contains("latitude=47.000,47.100"))
+    }
+}

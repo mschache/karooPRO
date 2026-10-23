@@ -3,6 +3,7 @@
     displayName="@string/extension_name"
     icon="@drawable/ic_karoopro"
     id="karoopro"
+    mapLayer="true"
     scansDevices="false">
     <DataType
         description="@string/pro_description"
