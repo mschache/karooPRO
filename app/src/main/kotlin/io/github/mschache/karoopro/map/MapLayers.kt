@@ -45,6 +45,7 @@ class MapLayers(
     private val hub: RideDataHub,
     private val settings: StateFlow<Settings>,
     private val scope: CoroutineScope,
+    private val memory: MapLayerMemory,
 ) {
     private class Route(val key: String, val geometry: RouteGeometry, val profile: List<ProfilePoint>, val routeDistance: Double?)
 
@@ -62,6 +63,12 @@ class MapLayers(
         var lastSignature = ""
         val keep = hub.keepAlive(listOf(DataType.Type.DISTANCE_TO_DESTINATION, DataType.Type.AVERAGE_SPEED))
         Log.i(TAG, "map layer started")
+        // Lines from a previous process (update or restart mid-ride) would otherwise stay on the map.
+        memory.takeLeftovers().takeUnless { it.isEmpty }?.let { old ->
+            old.lines.forEach { emitter.onNext(HidePolyline(it)) }
+            if (old.symbols.isNotEmpty()) emitter.onNext(HideSymbols(old.symbols))
+            Log.i(TAG, "cleared ${old.lines.size} leftover lines and ${old.symbols.size} arrows")
+        }
         var lastState = ""
         try {
             while (isActive) {
@@ -99,6 +106,7 @@ class MapLayers(
                             if (symbols.isNotEmpty()) emitter.onNext(ShowSymbols(symbols))
                             shownSymbols = ids
                             lastSignature = signature
+                            memory.remember(shownLines.keys, shownSymbols)
                             val start = r.geometry.pointAt(along)
                             Log.i(TAG, "map layers: ${lines.size} lines, ${symbols.size} arrows at ${along.toInt()} m, from %.5f,%.5f".format(start.lat, start.lng))
                         }
@@ -120,6 +128,7 @@ class MapLayers(
         lines.keys.forEach { emitter.onNext(HidePolyline(it)) }
         lines.clear()
         if (symbols.isNotEmpty()) emitter.onNext(HideSymbols(symbols))
+        memory.remember(emptyList(), emptyList())
     }
 
     /** Debug builds: a synthetic route shown when nothing is being navigated (indoor testing without GPS). */

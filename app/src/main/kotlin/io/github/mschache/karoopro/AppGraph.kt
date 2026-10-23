@@ -34,7 +34,9 @@ class AppGraph(context: Context) {
     val weather = WeatherRepository(hub, settings, scope)
     val workout = WorkoutMonitor(hub, settings, alerts, scope) { fieldVisible() }
     val panels = PanelController(hub, workout, settings, scope)
-    val mapLayers = io.github.mschache.karoopro.map.MapLayers(hub, settings, scope)
+    val mapLayers = io.github.mschache.karoopro.map.MapLayers(
+        hub, settings, scope, io.github.mschache.karoopro.map.MapLayerMemory(java.io.File(app.filesDir, "map-layers.txt")),
+    )
 
     /** True when the visible ride page has a KarooPRO field on it. */
     fun fieldVisible(): Boolean =

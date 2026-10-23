@@ -77,3 +77,21 @@ class RouteTest {
         assertTrue(OpenMeteo.routeUrl(listOf(47.0 to 8.0, 47.1 to 8.1)).contains("latitude=47.000,47.100"))
     }
 }
+
+class MapLayerMemoryTest {
+    @Test fun leftoversSurviveARestartAndAreClearedOnce() {
+        val file = java.io.File.createTempFile("map-layers", ".txt").apply { delete() }
+        io.github.mschache.karoopro.map.MapLayerMemory(file).remember(listOf("wind-0", "climb-3"), listOf("wind-arrow-1"))
+        // A new process reads what the old one drew...
+        val restarted = io.github.mschache.karoopro.map.MapLayerMemory(file)
+        val old = restarted.takeLeftovers()
+        assertEquals(listOf("wind-0", "climb-3"), old.lines)
+        assertEquals(listOf("wind-arrow-1"), old.symbols)
+        // ...and only once.
+        assertTrue(restarted.takeLeftovers().isEmpty)
+        // Clearing the map forgets everything.
+        restarted.remember(listOf("wind-0"), emptyList())
+        restarted.remember(emptyList(), emptyList())
+        assertTrue(restarted.takeLeftovers().isEmpty)
+    }
+}
