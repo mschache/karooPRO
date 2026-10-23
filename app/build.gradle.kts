@@ -88,6 +88,9 @@ tasks.register("generateManifest") {
     description = "Writes app/manifest.json (KarooAppManifest) for the GitHub release"
     group = "build"
     val out = layout.projectDirectory.file("manifest.json")
+    val releaseNotes = providers.gradleProperty("karoopro.releaseNotes").orElse("")
+    inputs.property("version", appVersionName)
+    inputs.property("releaseNotes", releaseNotes)
     outputs.file(out)
     doLast {
         val manifest = mapOf(
@@ -100,7 +103,7 @@ tasks.register("generateManifest") {
             "developer" to "github.com/mschache",
             "description" to "Ride by effort: one full-page field with a big zone-colored number and " +
                 "Ride, Effort, Weather, Lap, Analysis, Workout and Bike panels you flip with a tap.",
-            "releaseNotes" to (providers.gradleProperty("karoopro.releaseNotes").orNull ?: ""),
+            "releaseNotes" to releaseNotes.get(),
             "screenshotUrls" to listOf(
                 "$releaseBaseUrl/screenshot-1.png",
                 "$releaseBaseUrl/screenshot-2.png",
