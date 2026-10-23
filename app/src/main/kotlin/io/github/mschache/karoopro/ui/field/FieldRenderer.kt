@@ -28,6 +28,7 @@ object FieldRenderer {
             setImageViewBitmap(R.id.field_image, bitmap)
             setOnClickPendingIntent(R.id.tap_hero, action(context, FieldActionReceiver.CYCLE_METRIC))
             setOnClickPendingIntent(R.id.tap_previous, action(context, FieldActionReceiver.PREVIOUS_PANEL))
+            setOnClickPendingIntent(R.id.tap_middle, action(context, FieldActionReceiver.PANEL_MIDDLE))
             setOnClickPendingIntent(R.id.tap_next, action(context, FieldActionReceiver.NEXT_PANEL))
         }
     }
@@ -47,8 +48,9 @@ class FieldActionReceiver : BroadcastReceiver() {
         val graph = context.graph
         when (intent.action) {
             CYCLE_METRIC -> graph.cycleBigMetric()
-            NEXT_PANEL -> graph.panels.step(1)
-            PREVIOUS_PANEL -> graph.panels.step(-1)
+            NEXT_PANEL -> graph.panels.tap(1)
+            PREVIOUS_PANEL -> graph.panels.tap(-1)
+            PANEL_MIDDLE -> graph.panels.tap(0)
         }
     }
 
@@ -56,5 +58,6 @@ class FieldActionReceiver : BroadcastReceiver() {
         const val CYCLE_METRIC = "io.github.mschache.karoopro.CYCLE_METRIC"
         const val NEXT_PANEL = "io.github.mschache.karoopro.NEXT_PANEL"
         const val PREVIOUS_PANEL = "io.github.mschache.karoopro.PREVIOUS_PANEL"
+        const val PANEL_MIDDLE = "io.github.mschache.karoopro.PANEL_MIDDLE"
     }
 }

@@ -302,6 +302,7 @@ class FieldPainter(context: Context) {
             is AnalysisContent -> analysis(c, m, content, r)
             is WorkoutContent -> workout(c, m, content, r)
             is BikeContent -> bike(c, m, content, r)
+            is CoachContent -> coach(c, m, content, r)
         }
     }
 
@@ -690,6 +691,53 @@ class FieldPainter(context: Context) {
         c.drawCircle(ringX, cy, h * 0.06f, fill(p.dim))
         label(c, teeth, (ringX + cassX) / 2, r.top + h * 0.02f, h * 0.12f, if (g.crossChained) p.bad else p.text, Paint.Align.CENTER)
         if (g.crossChained) label(c, "CROSS-CHAIN", (ringX + cassX) / 2, r.bottom - h * 0.13f, h * 0.11f, p.bad, Paint.Align.CENTER)
+    }
+
+    /** Status and age on top, the message as large as it fits in a card, then tap to confirm. */
+    private fun coach(c: Canvas, m: FieldModel, cc: CoachContent, r: RectF) {
+        val p = m.palette
+        val (topR, cardR, hintR) = splitV(r, 0.12f, 0.76f, 0.12f, gap = r.height() * 0.025f)
+        val statusColor = if (cc.warning) p.warn else p.good
+        val capH = topR.height() * 0.62f
+        val top = topR.top + (topR.height() - capH) / 2
+        val dot = capH * 0.36f
+        c.drawCircle(topR.left + dot, top + capH / 2, dot, fill(statusColor))
+        val ageW = label(c, cc.age, topR.right, top, capH, p.dim, Paint.Align.RIGHT)
+        label(c, cc.status, topR.left + dot * 3f, top, capH, statusColor, maxWidth = topR.width() - dot * 3f - ageW - topR.height())
+
+        val radius = cardR.height() * 0.08f
+        card(c, cardR, p.card, radius)
+        if (cc.unread) {
+            c.save()
+            c.clipRect(cardR.left, cardR.top, cardR.left + cardR.width() * 0.02f, cardR.bottom)
+            c.drawRoundRect(cardR, radius, radius, fill(p.accent))
+            c.restore()
+        }
+        val inner = RectF(cardR.left + cardR.width() * 0.05f, cardR.top + cardR.height() * 0.08f, cardR.right - cardR.width() * 0.04f, cardR.bottom - cardR.height() * 0.06f)
+        var textR = inner
+        cc.title?.let { title ->
+            val titleH = inner.height() * 0.1f
+            label(c, title, inner.left, inner.top, titleH, p.dim, maxWidth = inner.width())
+            textR = RectF(inner.left, inner.top + titleH * 2f, inner.right, inner.bottom)
+        }
+        val color = if (cc.placeholder || !cc.unread) p.dim else p.text
+        paragraph(c, cc.text, textR, color, maxCap = if (cc.placeholder) textR.height() * 0.1f else textR.height() * 0.2f, minCap = textR.height() * 0.07f)
+
+        if (cc.hint.isNotEmpty()) {
+            label(c, cc.hint, hintR.centerX(), hintR.top + hintR.height() * 0.15f, hintR.height() * 0.6f, if (cc.unread) p.accent else p.dim, Paint.Align.CENTER)
+        }
+    }
+
+    /** Free text wrapped and sized to fill [r], centered vertically, left-aligned. */
+    private fun paragraph(c: Canvas, text: String, r: RectF, color: Int, maxCap: Float, minCap: Float) {
+        val atCap100 = textPaint(color, 100f / capRatio)
+        val fitted = TextFit.fit(text, r.width(), r.height(), maxCap, minCap) { atCap100.measureText(it) / 100f }
+        val cap = fitted.capHeight
+        var y = r.top + (r.height() - TextFit.height(fitted.lines.size, cap)) / 2
+        for (line in fitted.lines) {
+            label(c, line, r.left, y, cap, color, maxWidth = r.width())
+            y += cap * TextFit.LINE_PITCH
+        }
     }
 
     // ---------------------------------------------------------------- overlay

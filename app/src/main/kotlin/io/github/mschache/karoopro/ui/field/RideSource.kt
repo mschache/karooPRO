@@ -5,6 +5,7 @@ import io.github.mschache.karoopro.calc.Gearing
 import io.github.mschache.karoopro.calc.Polyline
 import io.github.mschache.karoopro.calc.ProfilePoint
 import io.github.mschache.karoopro.calc.WorkoutState
+import io.github.mschache.karoopro.coach.CoachInfo
 import io.github.mschache.karoopro.data.Metric
 import io.github.mschache.karoopro.data.Profile
 import io.github.mschache.karoopro.data.Settings
@@ -51,6 +52,8 @@ interface RideSource {
     val heading: Double?
     val gearing: Gearing?
     val batteries: Batteries
+    /** Karoo Coach's state; null when it isn't installed. */
+    val coach: CoachInfo?
     val nowMs: Long
 }
 
@@ -122,5 +125,6 @@ class LiveSource(private val g: AppGraph) : RideSource {
                 powerMeter = powerMeter,
             )
         }
+    override val coach get() = g.coach.state.value
     override val nowMs get() = System.currentTimeMillis()
 }

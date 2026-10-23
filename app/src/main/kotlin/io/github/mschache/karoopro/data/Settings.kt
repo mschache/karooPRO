@@ -10,6 +10,7 @@ enum class Panel(val title: String) {
     ANALYSIS("ANALYSIS"),
     WORKOUT("WORKOUT"),
     BIKE("BIKE"),
+    COACH("COACH"),
 }
 
 /** The value shown as the big number; tap the hero to cycle. */
@@ -35,6 +36,8 @@ data class Settings(
     val panels: List<PanelSetting> = Panel.entries.map { PanelSetting(it) },
     val autoOpenWorkout: Boolean = true,
     val autoOpenBike: Boolean = true,
+    /** Open the Coach panel when a Karoo Coach message arrives. */
+    val autoOpenCoach: Boolean = true,
     val bigMetric: BigMetric = BigMetric.POWER,
     val colorMode: ColorMode = ColorMode.TINT,
     val theme: ThemeMode = ThemeMode.AUTO,

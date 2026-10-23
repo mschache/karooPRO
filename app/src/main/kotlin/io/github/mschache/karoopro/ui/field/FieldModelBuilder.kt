@@ -8,6 +8,8 @@ import io.github.mschache.karoopro.calc.ZoneColors
 import io.github.mschache.karoopro.calc.ZoneKind
 import io.github.mschache.karoopro.calc.ZoneMath
 import io.github.mschache.karoopro.calc.bucketAverages
+import io.github.mschache.karoopro.coach.CoachStatus
+import io.github.mschache.karoopro.coach.CoachText
 import io.github.mschache.karoopro.data.AlertStyle
 import io.github.mschache.karoopro.data.BigMetric
 import io.github.mschache.karoopro.data.ColorMode
@@ -88,7 +90,7 @@ object FieldModelBuilder {
                 add(DataType.Type.SMOOTHED_3S_AVERAGE_PEDAL_POWER_BALANCE)
                 add(DataType.Type.CADENCE)
             }
-            Panel.WEATHER, Panel.WORKOUT -> Unit
+            Panel.WEATHER, Panel.WORKOUT, Panel.COACH -> Unit
         }
     }
 
@@ -293,7 +295,30 @@ object FieldModelBuilder {
                     ),
                 )
             }
+
+            Panel.COACH -> coach(src)
         }
+    }
+
+    private fun coach(src: RideSource): CoachContent {
+        val info = src.coach ?: return CoachContent("NOT INSTALLED", true, "", null, "Install Karoo Coach to get messages from your coach here", true, false, "")
+        val now = src.nowMs
+        val status = CoachStatus.of(info, now)
+        val m = info.message
+        return CoachContent(
+            status = status.label,
+            warning = status.warning,
+            age = m?.let { CoachText.ago(now - it.receivedAt) }.orEmpty(),
+            title = m?.title?.takeUnless { it.equals("Coach", ignoreCase = true) }?.uppercase(),
+            text = m?.text ?: if (info.configured) "Messages from your coach appear here" else "Set up Karoo Coach from your computer, see its README",
+            placeholder = m == null,
+            unread = info.unread,
+            hint = when {
+                m == null -> ""
+                info.acknowledged -> "READ"
+                else -> "TAP TO CONFIRM"
+            },
+        )
     }
 
     private fun weather(src: RideSource, p: Palette): WeatherContent {

@@ -15,6 +15,7 @@ Below that is a panel you flip with a tap on its left or right side.
 | **Analysis** | Best 5 s / 1 min / 5 min / 20 min power, time in zones, NP, TSS, IF, climbing, work |
 | **Workout** | Opens by itself during a structured workout: step, time left, target with PUSH / EASE / IN RANGE, step average, time in target |
 | **Bike** | Opens by itself when Di2 or AXS connects: gears, drivetrain with cross-chain warning, batteries, L/R balance, shifts, ratio |
+| **Coach** | Appears when the [Karoo Coach](#karoo-coach) extension is installed and set up: your coach's latest message in big type, how old it is, and whether check-ins work. Opens by itself on a new message; tap it to confirm |
 
 With no power meter, KarooPRO starts on speed and colors by heart rate.
 
@@ -46,6 +47,15 @@ While you navigate a route, KarooPRO draws on top of the Karoo's own map:
 - **Wind arrows every 5 km:** they point where the wind blows, in the same colors.
 
 Each layer can be switched off in KarooPRO's settings. The layers need an active navigation with a GPS fix, and the wind needs WiFi or the Companion app.
+
+## Karoo Coach
+
+Karoo Coach is a separate extension that lets an AI coach (Claude, from your phone) read your live ride and send you short messages. When it's installed and set up, KarooPRO gets a **Coach** panel:
+
+- A new message opens the Coach panel. Karoo Coach then skips its own pop-up while the KarooPRO page is on screen.
+- Tap anywhere on the panel to confirm an unread message. The coach sees it, and the field goes back to the panel you were on.
+- With the Coach panel on, rides whose profile has the KarooPRO field check in with your coach, just like rides with the Coach field.
+- Hide the panel in Settings to turn all of this off. Karoo Coach's own field and pop-ups keep working either way.
 
 ## Install
 
@@ -79,14 +89,14 @@ You can also map **KarooPRO: next panel**, **previous panel** or **switch power/
 ## Settings
 
 Open the **KarooPRO** app on the Karoo to:
-- Hide or reorder panels, and choose whether Workout and Bike open by themselves.
+- Hide or reorder panels, and choose whether Workout, Bike and Coach open by themselves.
 - Pick the default big number, the zone color style (tint the page, fill the top, or color the number) and the theme.
 - Choose the 4 Ride tiles and the 4 Lap fields.
 - Set CP and W′ for W′ balance (CP defaults to your Karoo FTP; W′ to 20 kJ).
 - Set the workout alert style, beeps and the pop-up on other pages.
 - Turn weather on or off.
 
-**Preview** shows the real field with demo data, so you can check every panel without riding.
+**Preview** shows the real field with demo data, so you can check every panel without riding. Once Karoo Coach is set up, the Coach panel there shows its real latest message.
 
 ## Good to know
 

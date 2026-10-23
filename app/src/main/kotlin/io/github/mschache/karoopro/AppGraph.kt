@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import io.github.mschache.karoopro.alerts.AlertQueue
+import io.github.mschache.karoopro.coach.CoachLink
 import io.github.mschache.karoopro.data.BigMetric
 import io.github.mschache.karoopro.data.PanelController
 import io.github.mschache.karoopro.data.RideDataHub
@@ -33,7 +34,8 @@ class AppGraph(context: Context) {
     val recorder = RideRecorder(hub, settings, RideSnapshotStore(app), scope)
     val weather = WeatherRepository(hub, settings, scope)
     val workout = WorkoutMonitor(hub, settings, alerts, scope) { fieldVisible() }
-    val panels = PanelController(hub, workout, settings, scope)
+    val coach = CoachLink(app, settings, scope)
+    val panels = PanelController(hub, workout, coach, settings, scope)
     val mapLayers = io.github.mschache.karoopro.map.MapLayers(
         hub, settings, scope, io.github.mschache.karoopro.map.MapLayerMemory(java.io.File(app.filesDir, "map-layers.txt")),
     )
@@ -62,6 +64,7 @@ class AppGraph(context: Context) {
         recorder.start()
         weather.start()
         workout.start()
+        coach.start()
         panels.start()
     }
 }

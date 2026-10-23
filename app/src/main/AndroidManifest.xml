@@ -3,6 +3,12 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Coach panel: read and confirm messages from the Karoo Coach extension, when it's installed. -->
+    <uses-permission android:name="io.github.mschache.karoocoach.permission.COACH" />
+
+    <queries>
+        <package android:name="io.github.mschache.karoocoach" />
+    </queries>
 
     <application
         android:name=".KarooProApp"

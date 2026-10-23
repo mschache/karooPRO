@@ -5,6 +5,8 @@ import io.github.mschache.karoopro.calc.ProfilePoint
 import io.github.mschache.karoopro.calc.TargetBand
 import io.github.mschache.karoopro.calc.TargetKind
 import io.github.mschache.karoopro.calc.WorkoutState
+import io.github.mschache.karoopro.coach.CoachInfo
+import io.github.mschache.karoopro.coach.CoachMessage
 import io.github.mschache.karoopro.data.LapMetric
 import io.github.mschache.karoopro.data.Metric
 import io.github.mschache.karoopro.data.Profile
@@ -20,7 +22,8 @@ import kotlin.math.sin
 
 /**
  * A believable mid-ride snapshot for the page editor and the in-app preview. [t] (seconds) moves the
- * numbers along so the preview shows zone colors changing.
+ * numbers along so the preview shows zone colors changing. [liveCoach] replaces the demo coach
+ * message, so the preview shows what Karoo Coach really has; [nowMs] must then be the real time.
  */
 class DemoSource(
     override val settings: Settings,
@@ -28,6 +31,8 @@ class DemoSource(
     private val t: Long = 0,
     private val noPowerMeter: Boolean = false,
     private val overlayMode: Int = 0,
+    liveCoach: CoachInfo? = null,
+    override val nowMs: Long = 0L,
 ) : RideSource {
     override val profile: Profile = profile.takeIf { it.powerZones.isNotEmpty() } ?: Profile.DEFAULT
     private val ftp = this.profile.ftp.coerceAtLeast(100).toDouble()
@@ -183,5 +188,9 @@ class DemoSource(
 
     override val batteries = Batteries(frontDerailleur = BatteryStatus.GOOD, rearDerailleur = BatteryStatus.OK, powerMeter = BatteryStatus.LOW)
 
-    override val nowMs = 0L
+    override val coach: CoachInfo = liveCoach ?: CoachInfo(
+        configured = true, active = true, riding = true, lastCheckInAt = nowMs - 8_000, lastError = null,
+        message = CoachMessage("demo", "Coach", "Nice and steady. Hold 220 W to the top, then spin easy for 2 min", nowMs - 40_000),
+        acknowledged = false,
+    )
 }

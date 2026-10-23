@@ -57,7 +57,12 @@ fun PreviewScreen(initial: PreviewOptions = PreviewOptions()) {
             if (w > 0 && h > 0) {
                 val density = context.resources.displayMetrics.density
                 val o = currentOptions
-                val source = DemoSource(graph.settings.value, graph.hub.profile.value, t = t, noPowerMeter = o.noPowerMeter, overlayMode = o.overlay)
+                // The Coach panel shows Karoo Coach's real message once it's set up.
+                val coach = graph.coach.state.value?.takeIf { it.configured }
+                val source = DemoSource(
+                    graph.settings.value, graph.hub.profile.value, t = t, noPowerMeter = o.noPowerMeter, overlayMode = o.overlay,
+                    liveCoach = coach, nowMs = if (coach != null) System.currentTimeMillis() else 0L,
+                )
                 val model = FieldModelBuilder.build(
                     source, graph.panels.shown(), graph.panels.visiblePanels(), w / density, h / density, density,
                     interactive = true, systemDark = FieldRenderer.isNight(context),

@@ -139,6 +139,21 @@ data class BikeContent(
     val stats: List<Stat>,
 ) : PanelContent
 
+data class CoachContent(
+    val status: String,
+    val warning: Boolean,
+    /** How old the message is, e.g. "2 min ago"; empty without a message. */
+    val age: String,
+    /** The message title when it says more than "Coach". */
+    val title: String?,
+    val text: String,
+    /** No message yet: [text] is a hint, drawn dim. */
+    val placeholder: Boolean,
+    val unread: Boolean,
+    /** "TAP TO CONFIRM" while unread, "READ" after. */
+    val hint: String,
+) : PanelContent
+
 sealed interface OverlayModel {
     val full: Boolean
 

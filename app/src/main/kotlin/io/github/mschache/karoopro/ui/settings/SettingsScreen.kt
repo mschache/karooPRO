@@ -111,6 +111,18 @@ fun SettingsScreen() {
         }
         Toggle("Open Workout panel when a workout starts", settings.autoOpenWorkout) { v -> update { it.copy(autoOpenWorkout = v) } }
         Toggle("Open Bike panel when Di2/AXS connects", settings.autoOpenBike) { v -> update { it.copy(autoOpenBike = v) } }
+        Toggle("Open Coach panel on a new coach message", settings.autoOpenCoach) { v -> update { it.copy(autoOpenCoach = v) } }
+        val coach by context.graph.coach.state.collectAsState()
+        Text(
+            when {
+                coach == null -> "Coach shows messages from the Karoo Coach extension once it's installed."
+                coach?.configured != true -> "Karoo Coach is installed but not set up yet."
+                else -> "Karoo Coach is set up. With Coach on, rides with KarooPRO check in with your coach and new messages open here instead of a pop-up."
+            },
+            Modifier.padding(vertical = 4.dp),
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            fontSize = 12.sp,
+        )
 
         Section("Big number")
         Choice(BigMetric.entries, settings.bigMetric, { it.label }) { v -> update { it.copy(bigMetric = v) } }
