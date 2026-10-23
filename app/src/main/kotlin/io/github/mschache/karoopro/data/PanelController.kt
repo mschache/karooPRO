@@ -16,7 +16,8 @@ import kotlinx.coroutines.launch
 /**
  * Which panel the field shows. Shared by every KarooPRO field instance; flipped by taps and bonus
  * actions, and switched automatically when a workout starts, Di2/AXS shifting appears or a coach
- * message arrives.
+ * message arrives. During a workout, a Coach panel that opened by itself goes back after 20 s
+ * without a tap, so coach messages never hide the target for long.
  */
 class PanelController(
     private val hub: RideDataHub,
@@ -41,6 +42,9 @@ class PanelController(
     /** The panel a coach message replaced; confirming the message goes back to it. */
     @Volatile private var beforeCoach: Panel? = null
 
+    /** When a coach message last opened the Coach panel by itself; 0 once the rider took over. */
+    @Volatile private var coachOpenedAt = 0L
+
     fun visiblePanels(s: Settings = settings.value): List<Panel> =
         s.orderedPanels.filter { it.enabled }.map { it.panel }.filter {
             demoMode || when (it) {
@@ -61,6 +65,7 @@ class PanelController(
         val visible = visiblePanels()
         val i = visible.indexOf(shown()).coerceAtLeast(0)
         beforeCoach = null
+        coachOpenedAt = 0
         _current.value = visible[(i + direction).mod(visible.size)]
         invalidate()
     }
@@ -71,6 +76,7 @@ class PanelController(
      * replaced); otherwise the sides flip panels.
      */
     fun tap(direction: Int) {
+        coachOpenedAt = 0
         if (shown() == Panel.COACH && coach.state.value?.unread == true) {
             coach.acknowledge()
             beforeCoach?.takeIf { it in visiblePanels() }?.let { _current.value = it }
@@ -83,6 +89,7 @@ class PanelController(
 
     fun show(panel: Panel) {
         beforeCoach = null
+        coachOpenedAt = 0
         _current.value = panel
         invalidate()
     }
@@ -98,8 +105,15 @@ class PanelController(
             coach.state.collect { info ->
                 val s = settings.value
                 val enabled = s.orderedPanels.any { it.panel == Panel.COACH && it.enabled }
-                if (inbox.isNew(info, System.currentTimeMillis()) && s.autoOpenCoach && enabled) {
-                    shown().takeIf { it != Panel.COACH }?.let { beforeCoach = it }
+                val now = System.currentTimeMillis()
+                if (inbox.isNew(info, now) && s.autoOpenCoach && enabled) {
+                    // A Coach panel the rider chose stays; one opened by a message gets the timer.
+                    if (shown() != Panel.COACH) {
+                        beforeCoach = shown()
+                        coachOpenedAt = now
+                    } else if (coachOpenedAt > 0) {
+                        coachOpenedAt = now
+                    }
                     _current.value = Panel.COACH
                 }
                 invalidate()
@@ -115,10 +129,21 @@ class PanelController(
                 val isWorkout = workout.active
                 if (isWorkout && !wasWorkout && s.autoOpenWorkout && Panel.WORKOUT in enabled) show(Panel.WORKOUT)
                 if (shiftingAvailable && !wasShifting && !isWorkout && s.autoOpenBike && Panel.BIKE in enabled) show(Panel.BIKE)
+                if (shown() != Panel.COACH) {
+                    coachOpenedAt = 0
+                } else if (isWorkout && coachOpenedAt > 0 && System.currentTimeMillis() - coachOpenedAt >= COACH_RETURN_MS) {
+                    val visible = visiblePanels()
+                    val back = listOfNotNull(beforeCoach, Panel.WORKOUT).firstOrNull { it in visible }
+                    if (back != null) show(back) else coachOpenedAt = 0
+                }
                 wasWorkout = isWorkout
                 wasShifting = shiftingAvailable
                 delay(1000)
             }
         }
+    }
+
+    private companion object {
+        const val COACH_RETURN_MS = 20_000L
     }
 }

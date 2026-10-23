@@ -2,6 +2,7 @@ package io.github.mschache.karoopro.weather
 
 import android.util.Log
 import io.github.mschache.karoopro.calc.Wind
+import io.github.mschache.karoopro.calc.WindComponents
 import io.github.mschache.karoopro.data.Metric
 import io.github.mschache.karoopro.data.RideDataHub
 import io.github.mschache.karoopro.data.Settings
@@ -66,14 +67,17 @@ class WeatherRepository(
         }
     }
 
-    /** Head (+) / tail (-) wind component in m/s for the current heading. */
-    fun headwind(): Double? {
+    /** Wind components in m/s for the current heading, from the weather already loaded (never fetches). */
+    fun wind(): WindComponents? {
         val w = _weather.value ?: return null
         val h = heading ?: return null
         val speed = w.windSpeed ?: return null
         val from = w.windFromDeg ?: return null
-        return Wind.components(speed, from, h).head
+        return Wind.components(speed, from, h)
     }
+
+    /** Head (+) / tail (-) wind component in m/s for the current heading. */
+    fun headwind(): Double? = wind()?.head
 
     private suspend fun run() {
         val location = hub.keepAlive(listOf(DataType.Type.LOCATION, DataType.Type.SPEED))

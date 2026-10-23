@@ -1,5 +1,11 @@
 package io.github.mschache.karoopro.coach
 
+import io.github.mschache.karoopro.calc.StepSummary
+import io.github.mschache.karoopro.calc.TargetKind
+import io.github.mschache.karoopro.calc.WindComponents
+import io.github.mschache.karoopro.calc.WorkoutState
+import kotlin.math.abs
+
 /** A message from Karoo Coach; [receivedAt] is when the Karoo got it (epoch ms). */
 data class CoachMessage(val id: String, val title: String, val text: String, val receivedAt: Long)
 
@@ -96,6 +102,58 @@ class CoachInbox {
     }
 }
 
+/**
+ * What KarooPRO tells Karoo Coach with [CoachContract.METHOD_EFFORT]: values only KarooPRO computes,
+ * as doubles in SI units (W, J, m/s, s; workout values in the step's target unit). Unknown values
+ * are left out; the W′ model's CP and W′ come only with a W′ balance.
+ */
+object CoachEffort {
+    fun values(
+        wPrimeJ: Double?,
+        wPrimeMaxJ: Double,
+        cpW: Double,
+        /** Best average power in W by duration in seconds. */
+        best: Map<Int, Double?>,
+        wind: WindComponents?,
+        step: WorkoutState?,
+        lastStep: StepSummary?,
+    ): Map<String, Double> = buildMap {
+        fun putKnown(key: String, v: Number?) {
+            v?.toDouble()?.takeIf { it.isFinite() }?.let { put(key, it) }
+        }
+        if (wPrimeJ != null && wPrimeJ.isFinite()) {
+            putKnown(CoachContract.W_PRIME_J, wPrimeJ)
+            putKnown(CoachContract.W_PRIME_MAX_J, wPrimeMaxJ)
+            putKnown(CoachContract.CP_W, cpW)
+        }
+        for ((seconds, key) in CoachContract.BEST) putKnown(key, best[seconds])
+        if (wind != null) {
+            putKnown(CoachContract.HEAD_MS, wind.head)
+            putKnown(CoachContract.CROSS_MS, abs(wind.cross))
+        }
+        if (step != null) {
+            putKnown(CoachContract.STEP_AVG, step.stepAverage)
+            putKnown(CoachContract.STEP_IN_TARGET, step.inTargetPercent)
+        }
+        if (lastStep != null) {
+            putKnown(CoachContract.LAST_STEP_INDEX, lastStep.index)
+            putKnown(CoachContract.LAST_STEP_KIND, kindCode(lastStep.kind))
+            putKnown(CoachContract.LAST_STEP_LOW, lastStep.low)
+            putKnown(CoachContract.LAST_STEP_HIGH, lastStep.high)
+            putKnown(CoachContract.LAST_STEP_SECONDS, lastStep.seconds)
+            putKnown(CoachContract.LAST_STEP_AVG, lastStep.average)
+            putKnown(CoachContract.LAST_STEP_IN_TARGET, lastStep.inTargetPercent)
+        }
+    }
+
+    fun kindCode(kind: TargetKind): Int = when (kind) {
+        TargetKind.POWER -> 1
+        TargetKind.HEART_RATE -> 2
+        TargetKind.CADENCE -> 3
+        TargetKind.NONE -> 0
+    }
+}
+
 /** Karoo Coach's side of the link; mirrors CoachContract in the karoo-mcp extension. */
 object CoachContract {
     const val PACKAGE = "io.github.mschache.karoocoach"
@@ -118,4 +176,32 @@ object CoachContract {
     const val METHOD_HOST = "host"
     const val EXTRA_SHOWS = "shows"
     const val EXTRA_OPENS = "opens"
+
+    /** Sent about every 5 s while [COL_ACTIVE]; see [CoachEffort]. */
+    const val METHOD_EFFORT = "effort"
+    const val W_PRIME_J = "w_prime_j"
+    const val W_PRIME_MAX_J = "w_prime_max_j"
+    const val CP_W = "cp_w"
+    const val BEST_5 = "best_5"
+    const val BEST_60 = "best_60"
+    const val BEST_300 = "best_300"
+    const val BEST_1200 = "best_1200"
+    /** Wind along the direction of travel in m/s: + headwind, − tailwind. */
+    const val HEAD_MS = "head_ms"
+    /** Size of the crosswind in m/s. */
+    const val CROSS_MS = "cross_ms"
+    /** Running workout step: average and % of time in target, in the step's target unit. */
+    const val STEP_AVG = "step_avg"
+    const val STEP_IN_TARGET = "step_in_target"
+    /** The step that just ended; index is the Karoo's 0-based step, kind 1 power, 2 heart rate, 3 cadence, 0 none. */
+    const val LAST_STEP_INDEX = "last_step_index"
+    const val LAST_STEP_KIND = "last_step_kind"
+    const val LAST_STEP_LOW = "last_step_low"
+    const val LAST_STEP_HIGH = "last_step_high"
+    const val LAST_STEP_SECONDS = "last_step_seconds"
+    const val LAST_STEP_AVG = "last_step_avg"
+    const val LAST_STEP_IN_TARGET = "last_step_in_target"
+
+    /** Best-effort keys by duration in seconds. */
+    val BEST = mapOf(5 to BEST_5, 60 to BEST_60, 300 to BEST_300, 1200 to BEST_1200)
 }

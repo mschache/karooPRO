@@ -26,13 +26,16 @@ import kotlinx.coroutines.withContext
 
 /**
  * Talks to the Karoo Coach extension, when it is installed: reads its latest message and status,
- * follows changes with a ContentObserver, sends acks, and tells it whether the KarooPRO field
- * shows coach messages (so Karoo Coach checks in for KarooPRO profiles and skips its pop-up).
+ * follows changes with a ContentObserver, sends acks, tells it whether the KarooPRO field
+ * shows coach messages (so Karoo Coach checks in for KarooPRO profiles and skips its pop-up), and
+ * sends it the [effort] values for its check-ins while they run.
  */
 class CoachLink(
     private val app: Context,
     private val settings: StateFlow<Settings>,
     private val scope: CoroutineScope,
+    /** [CoachEffort.values] for the ride right now. */
+    private val effort: () -> Map<String, Double>,
 ) {
     private val uri = Uri.parse(CoachContract.STATE_URI)
     private val fieldId = DataType.dataTypeId(EXTENSION_ID, ProFieldDataType.TYPE_ID)
@@ -63,6 +66,14 @@ class CoachLink(
         }
         scope.launch {
             settings.map { hostFlags(it) }.distinctUntilChanged().drop(1).collect { announce(settings.value) }
+        }
+        scope.launch {
+            while (isActive) {
+                delay(EFFORT_MS)
+                if (_state.value?.active != true) continue
+                val values = effort().takeIf { it.isNotEmpty() } ?: continue
+                call(CoachContract.METHOD_EFFORT, null, Bundle().apply { values.forEach { (k, v) -> putDouble(k, v) } })
+            }
         }
     }
 
@@ -134,5 +145,7 @@ class CoachLink(
     private companion object {
         const val TAG = "KarooPRO"
         const val REFRESH_MS = 30_000L
+        /** Karoo Coach drops values older than 20 s. */
+        const val EFFORT_MS = 5_000L
     }
 }

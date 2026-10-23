@@ -3,6 +3,7 @@ package io.github.mschache.karoopro.data
 import io.github.mschache.karoopro.alerts.AlertQueue
 import io.github.mschache.karoopro.alerts.Beep
 import io.github.mschache.karoopro.calc.TargetKind
+import io.github.mschache.karoopro.calc.StepSummary
 import io.github.mschache.karoopro.calc.WorkoutEvent
 import io.github.mschache.karoopro.calc.WorkoutSample
 import io.github.mschache.karoopro.calc.WorkoutState
@@ -39,6 +40,9 @@ class WorkoutMonitor(
     private val tracker = WorkoutTracker()
     private val _state = MutableStateFlow<WorkoutState?>(null)
     val state: StateFlow<WorkoutState?> = _state
+    private val _lastFinished = MutableStateFlow<StepSummary?>(null)
+    /** The step that ended last in this ride's running or just-finished workout. */
+    val lastFinished: StateFlow<StepSummary?> = _lastFinished
     private val _overlay = MutableStateFlow<WorkoutOverlay?>(null)
     val overlay: StateFlow<WorkoutOverlay?> = _overlay
     private var newTargetUntil = 0L
@@ -62,6 +66,7 @@ class WorkoutMonitor(
                         val now = System.currentTimeMillis()
                         handle(tracker.update(if (stepCount > 0) sample(stepCount) else null, now), now)
                         _state.value = tracker.state
+                        _lastFinished.value = tracker.lastFinished
                         _overlay.value = overlayFor(tracker.state, now)
                     }
                 } else {
@@ -71,6 +76,7 @@ class WorkoutMonitor(
                     detail = null
                     if (_state.value != null) tracker.reset()
                     _state.value = null
+                    _lastFinished.value = null
                     _overlay.value = null
                 }
                 delay(TICK_MS)

@@ -5,6 +5,7 @@ import io.github.mschache.karoopro.calc.Gearing
 import io.github.mschache.karoopro.calc.LapCompare
 import io.github.mschache.karoopro.calc.Polyline
 import io.github.mschache.karoopro.calc.SampleHistory
+import io.github.mschache.karoopro.calc.StepSummary
 import io.github.mschache.karoopro.calc.TargetBand
 import io.github.mschache.karoopro.calc.TargetKind
 import io.github.mschache.karoopro.calc.TargetStatus
@@ -270,6 +271,27 @@ class WorkoutTrackerTest {
         assertEquals(260, s.stepAverage)
         assertEquals(50, s.inTargetPercent)
         assertEquals(TargetStatus.PUSH, s.status)
+    }
+
+    @Test fun summarizesEachFinishedStep() {
+        val t = WorkoutTracker()
+        t.update(sample(2, 3_000, 270.0), 10_000)
+        t.update(sample(2, 2_000, 300.0), 11_000)
+        t.update(sample(2, 1_000, 280.0), 12_000)
+        assertNull("no step has ended yet", t.lastFinished)
+        t.update(sample(3, 60_000, 200.0), 13_000)
+        assertEquals(StepSummary(index = 2, kind = TargetKind.POWER, low = 265, high = 290, seconds = 3, average = 283, inTargetPercent = 67), t.lastFinished)
+        // The final step is summarized when the workout ends, and kept until the next one starts.
+        t.update(sample(3, 59_000, 210.0), 14_000)
+        t.update(null, 15_500)
+        assertEquals(StepSummary(3, TargetKind.POWER, 265, 290, 2, 205, 0), t.lastFinished)
+        t.update(null, 16_000)
+        assertEquals(3, t.lastFinished!!.index)
+        t.update(sample(0, 60_000), 20_000)
+        assertNull(t.lastFinished)
+        t.update(sample(1, 60_000), 21_000)
+        t.reset()
+        assertNull(t.lastFinished)
     }
 }
 

@@ -55,6 +55,8 @@ Karoo Coach is a separate extension that lets an AI coach (Claude, from your pho
 - A new message opens the Coach panel. Karoo Coach then skips its own pop-up while the KarooPRO page is on screen.
 - Tap anywhere on the panel to confirm an unread message. The coach sees it, and the field goes back to the panel you were on.
 - With the Coach panel on, rides whose profile has the KarooPRO field check in with your coach, just like rides with the Coach field.
+- Check-ins also carry what only KarooPRO computes: W′ balance, your best 5 s, 1, 5 and 20 min power, head- and crosswind, and how you're riding the workout step and rode the last one. So the coach can recap intervals and warn you when W′ runs low.
+- During a workout, a Coach panel that opened by itself goes back to your target after 20 seconds, unless you tap it.
 - Hide the panel in Settings to turn all of this off. Karoo Coach's own field and pop-ups keep working either way.
 
 ## Install

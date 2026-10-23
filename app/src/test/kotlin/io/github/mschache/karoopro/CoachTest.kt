@@ -1,6 +1,12 @@
 package io.github.mschache.karoopro
 
+import io.github.mschache.karoopro.calc.StepSummary
+import io.github.mschache.karoopro.calc.TargetKind
+import io.github.mschache.karoopro.calc.TargetStatus
+import io.github.mschache.karoopro.calc.Wind
+import io.github.mschache.karoopro.calc.WorkoutState
 import io.github.mschache.karoopro.coach.CoachContract
+import io.github.mschache.karoopro.coach.CoachEffort
 import io.github.mschache.karoopro.coach.CoachInbox
 import io.github.mschache.karoopro.coach.CoachInfo
 import io.github.mschache.karoopro.coach.CoachMessage
@@ -91,6 +97,56 @@ class CoachInboxTest {
     @Test fun oldMessagesDontOpen() {
         val now = 10_000_000L
         assertFalse(CoachInbox().isNew(info("a", now - 6 * 60_000), now))
+    }
+}
+
+class CoachEffortTest {
+    private val step = WorkoutState(
+        stepNumber = 4, stepCount = 8, kind = TargetKind.POWER, low = 265, high = 290, output = 280, status = TargetStatus.IN_RANGE,
+        stepRemainingS = 120, totalRemainingS = 900, stepElapsedS = 60, stepAverage = 276, inTargetPercent = 91, progress = 0.33f,
+    )
+
+    @Test fun sendsEverythingKnownInSiUnits() {
+        val values = CoachEffort.values(
+            wPrimeJ = 4_200.0, wPrimeMaxJ = 20_000.0, cpW = 250.0,
+            best = mapOf(5 to 810.0, 60 to 402.0, 300 to 281.0, 1200 to 255.0, 30 to 500.0),
+            // 5 m/s from 30° left of straight ahead.
+            wind = Wind.components(5.0, 330.0, 0.0),
+            step = step,
+            lastStep = StepSummary(index = 2, kind = TargetKind.HEART_RATE, low = 150, high = 160, seconds = 300, average = 156, inTargetPercent = 88),
+        )
+        assertEquals(
+            mapOf(
+                CoachContract.W_PRIME_J to 4_200.0, CoachContract.W_PRIME_MAX_J to 20_000.0, CoachContract.CP_W to 250.0,
+                CoachContract.BEST_5 to 810.0, CoachContract.BEST_60 to 402.0, CoachContract.BEST_300 to 281.0, CoachContract.BEST_1200 to 255.0,
+                CoachContract.STEP_AVG to 276.0, CoachContract.STEP_IN_TARGET to 91.0,
+                CoachContract.LAST_STEP_INDEX to 2.0, CoachContract.LAST_STEP_KIND to 2.0,
+                CoachContract.LAST_STEP_LOW to 150.0, CoachContract.LAST_STEP_HIGH to 160.0, CoachContract.LAST_STEP_SECONDS to 300.0,
+                CoachContract.LAST_STEP_AVG to 156.0, CoachContract.LAST_STEP_IN_TARGET to 88.0,
+            ),
+            values - CoachContract.HEAD_MS - CoachContract.CROSS_MS,
+        )
+        assertEquals(4.33, values.getValue(CoachContract.HEAD_MS), 0.01)
+        // The crosswind is sent as a size, whichever side it comes from.
+        assertEquals(2.5, values.getValue(CoachContract.CROSS_MS), 0.01)
+        assertEquals("best_300", CoachContract.BEST_300)
+        assertEquals("last_step_in_target", CoachContract.LAST_STEP_IN_TARGET)
+    }
+
+    @Test fun leavesOutWhatIsUnknown() {
+        val none = CoachEffort.values(null, 20_000.0, 250.0, mapOf(5 to null), wind = null, step = null, lastStep = null)
+        assertTrue("CP and W′ come only with a W′ balance", none.isEmpty())
+        val open = CoachEffort.values(
+            null, 20_000.0, 250.0, emptyMap(), Wind.components(3.0, 180.0, 0.0),
+            step.copy(kind = TargetKind.NONE, low = null, high = null, stepAverage = null, inTargetPercent = null),
+            StepSummary(5, TargetKind.NONE, null, null, 42, null, null),
+        )
+        assertEquals(
+            setOf(CoachContract.HEAD_MS, CoachContract.CROSS_MS, CoachContract.LAST_STEP_INDEX, CoachContract.LAST_STEP_KIND, CoachContract.LAST_STEP_SECONDS),
+            open.keys,
+        )
+        assertEquals(-3.0, open.getValue(CoachContract.HEAD_MS), 1e-9)
+        assertEquals(0.0, open.getValue(CoachContract.LAST_STEP_KIND), 0.0)
     }
 }
 

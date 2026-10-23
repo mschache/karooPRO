@@ -45,6 +45,18 @@ data class WorkoutState(
     val isLastStep: Boolean get() = stepNumber >= stepCount
 }
 
+/** How a finished step went; [low], [high] and [average] are in the step's target unit. */
+data class StepSummary(
+    /** The Karoo's 0-based step index. */
+    val index: Int,
+    val kind: TargetKind,
+    val low: Int?,
+    val high: Int?,
+    val seconds: Int,
+    val average: Int?,
+    val inTargetPercent: Int?,
+)
+
 sealed class WorkoutEvent {
     data class Countdown(val secondsLeft: Int, val nextStepNumber: Int, val stepCount: Int) : WorkoutEvent()
     data class StepStarted(val state: WorkoutState) : WorkoutEvent()
@@ -91,7 +103,16 @@ class WorkoutTracker(
     var state: WorkoutState? = null
         private set
 
+    /** The step that ended last, in the running workout or the one that just finished. */
+    var lastFinished: StepSummary? = null
+        private set
+
     fun reset() {
+        clearWorkout()
+        lastFinished = null
+    }
+
+    private fun clearWorkout() {
         lastStep = null
         lastAnnouncedSecond = null
         lastSampleMs = null
@@ -106,14 +127,19 @@ class WorkoutTracker(
         val events = mutableListOf<WorkoutEvent>()
         val idx = sample?.stepIndex
         if (sample == null || sample.stepCount <= 0 || idx == null) {
-            if (active) events += WorkoutEvent.Finished
-            reset()
+            if (active) {
+                lastFinished = finishStep(nowMs)
+                events += WorkoutEvent.Finished
+            }
+            clearWorkout()
             return events
         }
+        if (!active) lastFinished = null
         active = true
         val stepNumber = idx + 1
         val newStep = lastStep != idx
         if (newStep) {
+            if (lastStep != null) lastFinished = finishStep(nowMs)
             stepStartMs = nowMs
             lastSampleMs = null
             stepSamples = 0
@@ -163,5 +189,19 @@ class WorkoutTracker(
             }
         }
         return events
+    }
+
+    /** The running step as it stands, ending at [nowMs]. */
+    private fun finishStep(nowMs: Long): StepSummary? {
+        val s = state ?: return null
+        return StepSummary(
+            index = lastStep ?: return null,
+            kind = s.kind,
+            low = s.low,
+            high = s.high,
+            seconds = ((nowMs - stepStartMs) / 1000).toInt(),
+            average = s.stepAverage,
+            inTargetPercent = s.inTargetPercent,
+        )
     }
 }
