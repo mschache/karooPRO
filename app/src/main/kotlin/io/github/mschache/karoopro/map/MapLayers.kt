@@ -35,7 +35,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.floor
 
 /**
- * KarooPro's layers on top of the Karoo map while navigating: climbs as a wide grey-to-black band by
+ * Pangu Dash's layers on top of the Karoo map while navigating: climbs as a wide grey-to-black band by
  * grade, the wind on the route ahead as a thinner line on top, and wind arrows every 5 km.
  */
 class MapLayers(
@@ -140,7 +140,7 @@ class MapLayers(
         val speed = hub.value(Metric.AVG_SPEED)?.takeIf { it > 2.0 } ?: DEFAULT_SPEED_MS
         val etas = distances.map { now / 1000 + ((it - along) / speed).toLong() }
         nextWindFetch = try {
-            val body = hub.karoo.httpGet(OpenMeteo.routeUrl(points.map { it.lat to it.lng }), mapOf("User-Agent" to "KarooPro"))
+            val body = hub.karoo.httpGet(OpenMeteo.routeUrl(points.map { it.lat to it.lng }), mapOf("User-Agent" to "Pangu Dash"))
             val winds = OpenMeteo.parseRoute(body.decodeToString(), etas, now)
             wind = WindCache(
                 routeKey = r.key,

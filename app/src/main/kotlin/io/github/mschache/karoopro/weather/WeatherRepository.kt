@@ -123,7 +123,7 @@ class WeatherRepository(
 
     /** One Open-Meteo request through the Karoo's HTTP bridge. */
     suspend fun fetch(lat: Double, lng: Double, now: Long = System.currentTimeMillis()): WeatherData {
-        val body = hub.karoo.httpGet(OpenMeteo.url(lat, lng), mapOf("User-Agent" to "KarooPro"))
+        val body = hub.karoo.httpGet(OpenMeteo.url(lat, lng), mapOf("User-Agent" to "Pangu Dash"))
         return OpenMeteo.parse(body.decodeToString(), now)
     }
 

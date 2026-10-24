@@ -21,7 +21,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-/** A plain Karoo number fed once per second from a KarooPro computed value. */
+/** A plain Karoo number fed once per second from a Pangu Dash computed value. */
 abstract class ComputedNumber(
     protected val graph: AppGraph,
     typeId: String,

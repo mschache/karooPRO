@@ -3,7 +3,7 @@ package io.github.mschache.karoopro.calc
 import kotlin.math.pow
 
 /**
- * A free real-time stamina estimate, built from what KarooPro already knows:
+ * A free real-time stamina estimate, built from what Pangu Dash already knows:
  * - **Long term ([potential]):** how much of the day's endurance is left. Each second at a power
  *   uses 1 / [limitSeconds] of it (Miner's rule), where [limitSeconds] is how long that power could
  *   be held fresh: P(t) = FTP · (t / 1 h)^-0.07, the usual long-duration power-duration slope.

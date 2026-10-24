@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * The Panels field: KarooPro's panels without the big top, for the map page or any short slot. The
+ * The Panels field: Pangu Dash's panels without the big top, for the map page or any short slot. The
  * big number is the first slide; tap the left or right third to flip, the middle to switch the big
  * number. It keeps its own slide, apart from the full field.
  */

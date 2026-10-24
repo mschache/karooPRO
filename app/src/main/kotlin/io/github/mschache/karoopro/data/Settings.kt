@@ -62,7 +62,7 @@ data class Settings(
     val panels: List<PanelSetting> = Panel.PANELS.map { PanelSetting(it) },
     val autoOpenWorkout: Boolean = true,
     val autoOpenBike: Boolean = true,
-    /** Open the Coach panel when a KarooCoach message arrives. */
+    /** Open the Coach panel when a Pangu Coach message arrives. */
     val autoOpenCoach: Boolean = true,
     /** Open the Climb panel just before a climb on the navigated route, and go back at the top. */
     val autoOpenClimb: Boolean = true,
@@ -83,7 +83,7 @@ data class Settings(
     val paceIntensity: Int = 75,
     val bikeKg: Int = 9,
     val cda: Double = 0.32,
-    /** The PRO Strip field: its values, and whether climbs, segments and workouts swap theirs in. */
+    /** The Dash Strip field: its values, and whether climbs, segments and workouts swap theirs in. */
     val stripMetrics: List<Metric> = listOf(Metric.W_PRIME, Metric.STAMINA_NOW, Metric.HEADWIND, Metric.CARBS_BALANCE),
     val stripContext: Boolean = true,
     val bigMetric: BigMetric = BigMetric.POWER,
@@ -99,7 +99,7 @@ data class Settings(
     val criticalPower: Int? = null,
     val wPrimeJoules: Int = 20_000,
     val alertStyle: AlertStyle = AlertStyle.WINDOW,
-    /** Also show a Karoo pop-up so the next step is announced on pages without KarooPro. */
+    /** Also show a Karoo pop-up so the next step is announced on pages without Pangu Dash. */
     val systemAlert: Boolean = true,
     val alertBeep: Boolean = true,
     val countdownBeeps: Boolean = true,

@@ -25,7 +25,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.util.concurrent.ConcurrentHashMap
 
-/** The rider profile reduced to what KarooPro uses. */
+/** The rider profile reduced to what Pangu Dash uses. */
 data class Profile(
     val ftp: Int,
     val powerZones: List<ZoneRange>,

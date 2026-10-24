@@ -23,23 +23,23 @@ import kotlinx.coroutines.launch
 
 /** What the field shows on top of everything while a step change is coming or just happened. */
 sealed class WorkoutOverlay {
-    /** [plan] is the planned step, when KarooCoach's relay knows the workout. */
+    /** [plan] is the planned step, when Pangu Coach's relay knows the workout. */
     data class NextStep(val nextStep: Int, val stepCount: Int, val secondsLeft: Int, val plan: PlanStep? = null) : WorkoutOverlay()
     data class NewTarget(val state: WorkoutState) : WorkoutOverlay()
 }
 
 /**
  * Follows the Karoo's structured workout while a ride is active, keeps the Workout panel state
- * and fires the step-change beeps and pop-ups whether or not a KarooPro field is on screen.
+ * and fires the step-change beeps and pop-ups whether or not a Pangu Dash field is on screen.
  */
 class WorkoutMonitor(
     private val hub: RideDataHub,
     private val settings: StateFlow<Settings>,
     private val alerts: AlertQueue,
     private val scope: CoroutineScope,
-    /** True when a KarooPro field is on the visible ride page. */
+    /** True when a Pangu Dash field is on the visible ride page. */
     private val fieldVisible: () -> Boolean,
-    /** The planned step after the running one, from KarooCoach; null when unknown. */
+    /** The planned step after the running one, from Pangu Coach; null when unknown. */
     private val plannedNext: (WorkoutState, Long) -> PlanStep? = { _, _ -> null },
 ) {
     private val tracker = WorkoutTracker()
@@ -51,7 +51,7 @@ class WorkoutMonitor(
     private val _overlay = MutableStateFlow<WorkoutOverlay?>(null)
     val overlay: StateFlow<WorkoutOverlay?> = _overlay
     private val _next = MutableStateFlow<PlanStep?>(null)
-    /** The next step's duration and target, when KarooCoach's relay matched the workout to a plan. */
+    /** The next step's duration and target, when Pangu Coach's relay matched the workout to a plan. */
     val next: StateFlow<PlanStep?> = _next
     private var newTargetUntil = 0L
 

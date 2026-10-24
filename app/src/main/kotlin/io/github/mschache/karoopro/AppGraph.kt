@@ -78,7 +78,7 @@ class AppGraph(context: Context) {
         openBike = false,
     )
 
-    /** Redraw both KarooPro fields now. */
+    /** Redraw both Pangu Dash fields now. */
     fun invalidateFields() {
         panels.invalidate()
         mapPanels.invalidate()
@@ -89,7 +89,7 @@ class AppGraph(context: Context) {
         if (direction == 0 && mapPanels.shown() == Panel.NUMBER) cycleBigMetric() else mapPanels.tap(direction)
     }
 
-    /** The next / previous panel bonus actions: whichever KarooPro field is on screen flips. */
+    /** The next / previous panel bonus actions: whichever Pangu Dash field is on screen flips. */
     fun stepPanels(direction: Int) {
         val ids = hub.activePage.value?.elements?.map { it.dataTypeId }.orEmpty()
         val decks = PanelTargets.forPage(ids, DataType.dataTypeId(EXTENSION_ID, ProFieldDataType.TYPE_ID), DataType.dataTypeId(EXTENSION_ID, PanelsFieldDataType.TYPE_ID))
@@ -101,7 +101,7 @@ class AppGraph(context: Context) {
         hub, routes, settings, scope, io.github.mschache.karoopro.map.MapLayerMemory(java.io.File(app.filesDir, "map-layers.txt")),
     )
 
-    /** What KarooCoach's check-ins carry from KarooPro. */
+    /** What Pangu Coach's check-ins carry from Pangu Dash. */
     private fun effort(): Map<String, Double> {
         val s = settings.value
         return CoachEffort.values(
@@ -121,7 +121,7 @@ class AppGraph(context: Context) {
         invalidateFields()
     }
 
-    /** True when the visible ride page has a KarooPro field on it. */
+    /** True when the visible ride page has a Pangu Dash field on it. */
     fun fieldVisible(): Boolean =
         hub.activePage.value?.elements?.any { it.dataTypeId.startsWith(DataType.dataTypeId(EXTENSION_ID, "")) } == true
 
