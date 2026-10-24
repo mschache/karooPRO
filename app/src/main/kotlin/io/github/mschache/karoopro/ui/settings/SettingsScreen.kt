@@ -82,7 +82,7 @@ fun AboutScreen() {
         Text("Weather data by Open-Meteo.com (CC BY 4.0).", color = c, fontSize = 13.sp)
         Text("Zone colors follow the Karoo palette as sampled by the open-source BigNum extension.", color = c, fontSize = 13.sp)
         Text(
-            "The Karoo only shares the running workout step, so the next step's target appears when it starts; the countdown before it is exact.",
+            "The Karoo only shares the running workout step, so the next step's target appears when it starts, or already during the countdown when KarooCoach has the plan. The countdown is exact.",
             color = c.copy(alpha = 0.7f),
             fontSize = 12.sp,
         )
@@ -235,6 +235,7 @@ fun SettingsScreen() {
             onPlus = { update { s -> s.copy(drinkMlPerHour = s.drinkMlPerHour + 50) } },
         )
         Toggle("Remind me to eat and drink (beep, and pop-up on other pages)", settings.fuelReminders) { v -> update { it.copy(fuelReminders = v) } }
+        Text("Carbs in each, and the bottle size", Modifier.padding(top = 4.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 12.sp)
         Stepper("Gel", "${settings.gelCarbs} g",
             onMinus = { update { s -> s.copy(gelCarbs = s.gelCarbs - 5) } },
             onPlus = { update { s -> s.copy(gelCarbs = s.gelCarbs + 5) } },
@@ -247,7 +248,7 @@ fun SettingsScreen() {
             onMinus = { update { s -> s.copy(bottleCarbs = s.bottleCarbs - 5) } },
             onPlus = { update { s -> s.copy(bottleCarbs = s.bottleCarbs + 5) } },
         )
-        Stepper("Bottle", "${settings.bottleMl} ml",
+        Stepper("Size", "${settings.bottleMl} ml",
             onMinus = { update { s -> s.copy(bottleMl = s.bottleMl - 50) } },
             onPlus = { update { s -> s.copy(bottleMl = s.bottleMl + 50) } },
         )
