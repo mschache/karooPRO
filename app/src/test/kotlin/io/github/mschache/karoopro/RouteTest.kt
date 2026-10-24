@@ -1,5 +1,7 @@
 package io.github.mschache.karoopro
 
+import io.github.mschache.karoopro.calc.Climbs
+import io.github.mschache.karoopro.calc.ElevationProfile
 import io.github.mschache.karoopro.calc.GeoPoint
 import io.github.mschache.karoopro.calc.GradeRuns
 import io.github.mschache.karoopro.calc.Polyline
@@ -10,8 +12,11 @@ import io.github.mschache.karoopro.calc.RouteWind
 import io.github.mschache.karoopro.calc.WindRuns
 import io.github.mschache.karoopro.calc.encodePolyline
 import io.github.mschache.karoopro.calc.mergeRuns
+import io.github.mschache.karoopro.data.RouteTracker
 import io.github.mschache.karoopro.weather.OpenMeteo
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -93,5 +98,64 @@ class MapLayerMemoryTest {
         restarted.remember(listOf("wind-0"), emptyList())
         restarted.remember(emptyList(), emptyList())
         assertTrue(restarted.takeLeftovers().isEmpty)
+    }
+}
+
+class ClimbsTest {
+    private fun profile(vararg pts: Pair<Double, Double>) = ElevationProfile(pts.map { ProfilePoint(it.first, it.second) })
+
+    @Test fun findsTheDemoRoutesThreeClimbs() {
+        val climbs = Climbs.detect(ElevationProfile(RouteTracker.DEMO_PROFILE))
+        assertEquals(3, climbs.size)
+        // Each from its foot to its top, within the 25 m the ends are searched in.
+        assertEquals(2_000.0, climbs[0].start, 50.0)
+        assertEquals(3_000.0, climbs[0].end, 50.0)
+        assertEquals(80.0, climbs[0].gain, 5.0)
+        assertEquals(8.0, climbs[0].avgGrade, 1.0)
+        assertEquals(7_400.0, climbs[1].start, 50.0)
+        assertEquals(9_500.0, climbs[2].start, 50.0)
+        assertEquals(9_800.0, climbs[2].end, 50.0)
+    }
+
+    @Test fun ignoresSmallBumpsAndJoinsShortDips() {
+        // 20 m bump: not a climb.
+        assertTrue(Climbs.detect(profile(0.0 to 100.0, 1_000.0 to 100.0, 1_400.0 to 120.0, 3_000.0 to 120.0)).isEmpty())
+        // 2 km at 5 % with a 150 m, 5 m dip in the middle: one climb.
+        val dip = profile(0.0 to 0.0, 500.0 to 0.0, 1_500.0 to 50.0, 1_575.0 to 45.0, 1_650.0 to 50.0, 2_650.0 to 100.0, 3_500.0 to 100.0)
+        val climbs = Climbs.detect(dip)
+        assertEquals(1, climbs.size)
+        assertEquals(100.0, climbs[0].gain, 5.0)
+        // A long descent in between splits it in two.
+        val split = profile(0.0 to 0.0, 500.0 to 0.0, 1_500.0 to 50.0, 2_500.0 to 20.0, 3_500.0 to 70.0, 4_500.0 to 70.0)
+        assertEquals(2, Climbs.detect(split).size)
+    }
+
+    @Test fun progressToTheTopAndOnToTheNextClimb() {
+        val p = ElevationProfile(RouteTracker.DEMO_PROFILE)
+        val climbs = Climbs.detect(p)
+        val before = Climbs.progress(climbs, 1_500.0, p)!!
+        assertEquals(1, before.number)
+        assertEquals(3, before.total)
+        assertFalse(before.onClimb)
+        assertEquals(500.0, before.toStart, 50.0)
+        val on = Climbs.progress(climbs, 2_500.0, p)!!
+        assertTrue(on.onClimb)
+        assertEquals(500.0, on.toTop, 50.0)
+        assertEquals(40.0, on.elevationToTop, 5.0)
+        assertEquals(8.0, on.avgGradeLeft!!, 1.0)
+        // Over the top: the next climb.
+        assertEquals(2, Climbs.progress(climbs, 3_100.0, p)!!.number)
+        assertNull(Climbs.progress(climbs, 11_000.0, p))
+    }
+
+    @Test fun viewSlicesTheClimbAndPlacesTheRider() {
+        val p = ElevationProfile(RouteTracker.DEMO_PROFILE)
+        val view = Climbs.view(Climbs.detect(p), 2_500.0, p, count = 10)!!
+        assertEquals(10, view.slices.size)
+        assertEquals(0.0, view.slices.first().from, 1e-9)
+        assertEquals(view.progress.climb.length, view.slices.last().to, 1e-6)
+        assertEquals(8.0, view.slices[5].grade, 1.0)
+        assertEquals(500.0, view.riderAt!!, 50.0)
+        assertNull(Climbs.view(Climbs.detect(p), 1_000.0, p)!!.riderAt)
     }
 }

@@ -1,5 +1,8 @@
 package io.github.mschache.karoopro.ui.field
 
+import io.github.mschache.karoopro.calc.ClimbView
+import io.github.mschache.karoopro.calc.Climbs
+import io.github.mschache.karoopro.calc.ElevationProfile
 import io.github.mschache.karoopro.calc.Gearing
 import io.github.mschache.karoopro.calc.ProfilePoint
 import io.github.mschache.karoopro.calc.TargetBand
@@ -163,6 +166,11 @@ class DemoSource(
         ProfilePoint(d, 412 + 90 * sin(i / 32.0) - 40 * (i / 100.0))
     }
 
+    /** Two climbs; the rider is 1.6 km up the first, a 4 km climb at about 6 %. */
+    override val climb: ClimbView? = ElevationProfile(DEMO_CLIMBS).let { profile ->
+        Climbs.view(Climbs.detect(profile), 2_600.0 + t * 5, profile)
+    }
+
     override val workout: WorkoutState
         get() {
             val bounds = TargetBand.bounds(TargetKind.POWER, null, ftp * 1.06, ftp * 1.16)!!
@@ -212,4 +220,11 @@ class DemoSource(
         message = CoachMessage("demo", "Coach", "Nice and steady. Hold 220 W to the top, then spin easy for 2 min", nowMs - 40_000),
         acknowledged = false,
     )
+
+    private companion object {
+        val DEMO_CLIMBS = listOf(
+            0.0 to 300.0, 1_000.0 to 305.0, 1_400.0 to 330.0, 2_400.0 to 395.0, 3_000.0 to 450.0, 3_600.0 to 470.0,
+            4_400.0 to 545.0, 5_000.0 to 560.0, 5_600.0 to 555.0, 7_000.0 to 520.0, 7_800.0 to 600.0, 9_000.0 to 590.0,
+        ).map { ProfilePoint(it.first, it.second) }
+    }
 }

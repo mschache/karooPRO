@@ -12,6 +12,7 @@ import io.github.mschache.karoopro.data.PanelController
 import io.github.mschache.karoopro.data.RideDataHub
 import io.github.mschache.karoopro.data.RideRecorder
 import io.github.mschache.karoopro.data.RideSnapshotStore
+import io.github.mschache.karoopro.data.RouteTracker
 import io.github.mschache.karoopro.data.SettingsRepository
 import io.github.mschache.karoopro.data.WorkoutMonitor
 import io.github.mschache.karoopro.weather.WeatherRepository
@@ -39,9 +40,10 @@ class AppGraph(context: Context) {
         coach.state.value?.nextStep(state.stepNumber - 1, state.stepCount, now)
     }
     val coach = CoachLink(app, settings, scope) { effort() }
-    val panels = PanelController(hub, workout, coach, settings, scope)
+    val routes = RouteTracker(hub)
+    val panels = PanelController(hub, workout, coach, settings, scope) { routes.climb() }
     val mapLayers = io.github.mschache.karoopro.map.MapLayers(
-        hub, settings, scope, io.github.mschache.karoopro.map.MapLayerMemory(java.io.File(app.filesDir, "map-layers.txt")),
+        hub, routes, settings, scope, io.github.mschache.karoopro.map.MapLayerMemory(java.io.File(app.filesDir, "map-layers.txt")),
     )
 
     /** What Karoo Coach's check-ins carry from KarooPRO. */

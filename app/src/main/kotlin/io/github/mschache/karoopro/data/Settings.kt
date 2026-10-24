@@ -5,6 +5,7 @@ import kotlinx.serialization.Serializable
 enum class Panel(val title: String) {
     RIDE("RIDE"),
     EFFORT("EFFORT"),
+    CLIMB("CLIMB"),
     WEATHER("WEATHER"),
     LAP("LAP"),
     ANALYSIS("ANALYSIS"),
@@ -48,6 +49,8 @@ data class Settings(
     val autoOpenBike: Boolean = true,
     /** Open the Coach panel when a Karoo Coach message arrives. */
     val autoOpenCoach: Boolean = true,
+    /** Open the Climb panel just before a climb on the navigated route, and go back at the top. */
+    val autoOpenClimb: Boolean = true,
     val bigMetric: BigMetric = BigMetric.POWER,
     /** The big numbers a tap on the hero cycles through, in order. */
     val bigMetrics: List<BigMetric> = listOf(BigMetric.POWER, BigMetric.SPEED, BigMetric.HR),

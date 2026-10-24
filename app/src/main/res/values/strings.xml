@@ -2,7 +2,7 @@
     <string name="app_name">KarooPRO</string>
     <string name="extension_name">KarooPRO</string>
     <string name="pro_name">KarooPRO</string>
-    <string name="pro_description">Ride by effort: big zone-colored number and Ride, Effort, Weather, Lap, Analysis, Workout and Bike panels. Put it alone on a page; tap the top to switch power/speed/HR, tap left or right of the panel to flip.</string>
+    <string name="pro_description">Ride by effort: big zone-colored number and Ride, Effort, Climb, Weather, Lap, Analysis, Workout, Bike and Coach panels. Put it alone on a page; tap the top to switch power/speed/HR, tap left or right of the panel to flip.</string>
     <string name="wind_name">PRO Wind</string>
     <string name="wind_description">Wind compass that turns with your heading: green tailwind, red headwind, yellow crosswind.</string>
     <string name="wprime_name">PRO W\' Balance</string>

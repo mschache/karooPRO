@@ -308,6 +308,7 @@ class FieldPainter(context: Context) {
             is WorkoutContent -> workout(c, m, content, r)
             is BikeContent -> bike(c, m, content, r)
             is CoachContent -> coach(c, m, content, r)
+            is ClimbContent -> climb(c, m, content, r)
         }
     }
 
@@ -698,6 +699,54 @@ class FieldPainter(context: Context) {
         c.drawCircle(ringX, cy, h * 0.06f, fill(p.dim))
         label(c, teeth, (ringX + cassX) / 2, r.top + h * 0.02f, h * 0.12f, if (g.crossChained) p.bad else p.text, Paint.Align.CENTER)
         if (g.crossChained) label(c, "CROSS-CHAIN", (ringX + cassX) / 2, r.bottom - h * 0.13f, h * 0.11f, p.bad, Paint.Align.CENTER)
+    }
+
+    /** Title and W′ on top, to the top (or the climb's size) large, the climb's profile by grade, then four stats. */
+    private fun climb(c: Canvas, m: FieldModel, cc: ClimbContent, r: RectF) {
+        val p = m.palette
+        cc.message?.let { return message(c, m, it, r) }
+        val gap = r.width() * 0.03f
+        val (topR, bigR, profR, statsR) = splitV(r, 0.11f, 0.27f, 0.36f, 0.2f, gap = r.height() * 0.025f)
+        val capH = topR.height() * 0.62f
+        val top = topR.top + (topR.height() - capH) / 2
+        val effortW = cc.effort?.let { label(c, it, topR.right, top, capH, if (cc.effortWarning) p.bad else p.good, Paint.Align.RIGHT, topR.width() * 0.45f) } ?: 0f
+        label(c, cc.title, topR.left, top, capH, p.text, maxWidth = topR.width() - effortW - gap)
+
+        row(bigR, cc.big.size.coerceAtLeast(1), gap).forEachIndexed { i, cell -> cc.big.getOrNull(i)?.let { stat(c, p, it, cell) } }
+
+        // Profile: one filled slice per stretch, colored by its grade; the part behind the rider dimmed.
+        val floor = profR.height() * 0.08f
+        fun x(f: Float) = profR.left + f * profR.width()
+        fun y(h: Float) = profR.bottom - floor - h * (profR.height() - floor)
+        for (b in cc.bars) {
+            val path = Path().apply {
+                moveTo(x(b.from), profR.bottom)
+                lineTo(x(b.from), y(b.fromHeight))
+                lineTo(x(b.to), y(b.toHeight))
+                lineTo(x(b.to), profR.bottom)
+                close()
+            }
+            val color = gradeColor(b.grade)
+            c.drawPath(path, fill(if (cc.rider != null && b.to <= cc.rider) ZoneColors.blend(color, p.background, 0.35f) else color))
+        }
+        cc.rider?.let { f ->
+            val bar = cc.bars.firstOrNull { f >= it.from && f <= it.to } ?: cc.bars.lastOrNull()
+            val h = bar?.let { b -> b.fromHeight + (b.toHeight - b.fromHeight) * ((f - b.from) / (b.to - b.from).coerceAtLeast(1e-3f)) } ?: 0f
+            val rx = x(f)
+            c.drawLine(rx, profR.top, rx, profR.bottom, stroke(p.text, max(2f, profR.height() * 0.015f)))
+            c.drawCircle(rx, y(h), profR.height() * 0.06f, fill(p.text))
+        }
+
+        row(statsR, cc.stats.size.coerceAtLeast(1), gap).forEachIndexed { i, cell -> cc.stats.getOrNull(i)?.let { stat(c, p, it, cell) } }
+    }
+
+    /** Climb grades as riders know them from climb profiles: green, yellow, orange, red, dark red. */
+    private fun gradeColor(grade: Float): Int = when {
+        grade >= 12 -> 0xFF9B0E2A.toInt()
+        grade >= 9 -> 0xFFFF3B30.toInt()
+        grade >= 6 -> 0xFFFF8A00.toInt()
+        grade >= 3 -> 0xFFFFC400.toInt()
+        else -> 0xFF00C46A.toInt()
     }
 
     /** Status and age on top, the message as large as it fits in a card, then tap to confirm. */

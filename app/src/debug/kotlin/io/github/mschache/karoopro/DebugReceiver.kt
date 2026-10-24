@@ -9,14 +9,15 @@ import io.hammerhead.karooext.models.ZoomPage
 /**
  * adb shell am broadcast -a io.github.mschache.karoopro.debug.ALERT -n io.github.mschache.karoopro/.DebugReceiver
  *   [--ei zoomout N | --ei zoomin N]   zoom the visible map page instead of firing the alert
- *   [--es demoroute "lat,lng" | --es demoroute off]   draw the map layers on a synthetic 12 km loop
+ *   [--es demoroute "lat,lng" | --es demoroute off]   a synthetic 12 km loop with three climbs for the map
+ *     layers and the Climb panel; the ride distance moves the rider round it
  */
 class DebugReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         val g = context.graph
         intent.getStringExtra("demoroute")?.let { arg ->
             val ll = arg.split(",").mapNotNull { it.trim().toDoubleOrNull() }
-            if (ll.size == 2) g.mapLayers.showDemoRoute(ll[0], ll[1]) else g.mapLayers.hideDemoRoute()
+            if (ll.size == 2) g.routes.showDemoRoute(ll[0], ll[1]) else g.routes.hideDemoRoute()
             return
         }
         val zoomOut = intent.getIntExtra("zoomout", 0)

@@ -86,6 +86,10 @@ object FieldModelBuilder {
                 }
             }
             Panel.ANALYSIS -> listOf(Metric.NP, Metric.TSS, Metric.IF, Metric.ASCENT, Metric.WORK).mapNotNullTo(this) { it.karoo?.typeId }
+            Panel.CLIMB -> {
+                listOf(Metric.GRADE, Metric.VAM, Metric.DISTANCE).mapNotNullTo(this) { it.karoo?.typeId }
+                add(DataType.Type.DISTANCE_TO_DESTINATION)
+            }
             Panel.BIKE -> {
                 add(DataType.Type.SHIFTING_GEARS)
                 add(DataType.Type.SHIFTING_BATTERY)
@@ -328,7 +332,75 @@ object FieldModelBuilder {
             }
 
             Panel.COACH -> coach(src)
+
+            Panel.CLIMB -> climb(src)
         }
+    }
+
+    private fun climb(src: RideSource): ClimbContent {
+        val u = src.profile.units
+        val view = src.climb ?: return ClimbContent("CLIMB", null, false, emptyList(), emptyList(), emptyList(), null, "No climb ahead\non this route")
+        val p = view.progress
+        val c = p.climb
+        val km = Fmt.distanceUnit(u)
+        val vam = src.value(Metric.VAM)
+        val speed = src.value(Metric.SPEED)
+        val grade = Stat("GRADE", Fmt.decimal(src.value(Metric.GRADE), 1), "%")
+        // Time to the top at the current climbing rate, else at the current speed.
+        val topInS = when {
+            vam != null && vam > 50 -> p.elevationToTop / vam * 3600
+            speed != null && speed > 1 -> p.toTop / speed
+            else -> null
+        }
+        val emptyInS = src.value(Metric.W_PRIME_EMPTY)?.div(1000)
+        val big: List<Stat>
+        val stats: List<Stat>
+        if (p.onClimb) {
+            big = listOf(
+                Stat("TO TOP", Fmt.distance(p.toTop, u), km),
+                Stat("UP", Fmt.elevation(p.elevationToTop, u), Fmt.elevationUnit(u)),
+            )
+            stats = listOf(
+                Stat("AVG LEFT", Fmt.decimal(p.avgGradeLeft, 1), "%"),
+                grade,
+                Stat("VAM", Fmt.int(vam), "m/h"),
+                Stat("TOP IN", topInS?.let { Fmt.seconds(it.toLong()) } ?: Fmt.NONE),
+            )
+        } else {
+            big = listOf(
+                Stat("LENGTH", Fmt.distance(c.length, u), km),
+                Stat("GAIN", Fmt.elevation(c.gain, u), Fmt.elevationUnit(u)),
+            )
+            stats = listOf(
+                Stat("AVG", Fmt.decimal(c.avgGrade, 1), "%"),
+                Stat("MAX", Fmt.decimal(c.maxGrade, 1), "%"),
+                grade,
+                Stat("VAM", Fmt.int(vam), "m/h"),
+            )
+        }
+        val lowest = view.slices.minOfOrNull { minOf(it.fromElevation, it.toElevation) } ?: 0.0
+        val span = ((view.slices.maxOfOrNull { maxOf(it.fromElevation, it.toElevation) } ?: 0.0) - lowest).coerceAtLeast(1.0)
+        return ClimbContent(
+            title = "CLIMB ${p.number}/${p.total}" + if (p.onClimb) "" else " IN ${Fmt.distance(p.toStart, u)} ${km.uppercase()}",
+            effort = when {
+                !src.powerAvailable -> null
+                emptyInS != null -> "W′ EMPTY IN ${Fmt.seconds(emptyInS.toLong())}"
+                else -> "W′ OK"
+            },
+            effortWarning = emptyInS != null && (emptyInS < 60 || (p.onClimb && topInS != null && emptyInS < topInS)),
+            big = big,
+            stats = stats,
+            bars = view.slices.map {
+                ClimbBar(
+                    from = (it.from / c.length).toFloat(),
+                    to = (it.to / c.length).toFloat(),
+                    fromHeight = ((it.fromElevation - lowest) / span).toFloat(),
+                    toHeight = ((it.toElevation - lowest) / span).toFloat(),
+                    grade = it.grade.toFloat(),
+                )
+            },
+            rider = view.riderAt?.let { (it / c.length).toFloat().coerceIn(0f, 1f) },
+        )
     }
 
     private fun coach(src: RideSource): CoachContent {

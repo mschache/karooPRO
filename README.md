@@ -10,6 +10,7 @@ Below that is a panel you flip with a tap on its left or right side.
 |---|---|
 | **Ride** | Four tiles you choose, each with a 5-minute mini graph |
 | **Effort** | 10-minute effort bars colored by zone, W′ balance, grade, VAM, ascent, terrain profile (the route ahead while navigating) |
+| **Climb** | While you navigate a route with climbs: opens by itself 200 m before each climb and goes back at the top. Climb number, distance and height to the top, average grade left, grade, VAM, time to the top, how long your W′ lasts at this power, and the climb's profile colored by grade. Before a climb it shows how far away it is, its length, gain, average and steepest grade |
 | **Weather** | Head, tail or crosswind for your direction of travel, gusts, rain chance, temperature, and the next 6 hours (Open-Meteo) |
 | **Lap** | Four lap fields with ▲/▼ against the previous lap |
 | **Analysis** | Best 5 s / 1 min / 5 min / 20 min power, time in zones, NP, TSS, IF, climbing, work |
@@ -103,7 +104,7 @@ You can also map **KarooPRO: next panel**, **previous panel** or **switch the bi
 ## Settings
 
 Open the **KarooPRO** app on the Karoo to:
-- Hide or reorder panels, and choose whether Workout, Bike and Coach open by themselves.
+- Hide or reorder panels, and choose whether Workout, Bike, Coach and Climb open by themselves.
 - Pick which big numbers the tap switches between and which one it starts on, the two cards under it, the zone color style (tint the page, fill the top, or color the number) and the theme.
 - Choose the 4 Ride tiles and the 4 Lap fields.
 - Set CP and W′ for W′ balance (CP defaults to your Karoo FTP; W′ to 20 kJ).

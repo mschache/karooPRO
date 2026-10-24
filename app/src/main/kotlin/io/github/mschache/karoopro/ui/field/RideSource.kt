@@ -1,8 +1,8 @@
 package io.github.mschache.karoopro.ui.field
 
 import io.github.mschache.karoopro.AppGraph
+import io.github.mschache.karoopro.calc.ClimbView
 import io.github.mschache.karoopro.calc.Gearing
-import io.github.mschache.karoopro.calc.Polyline
 import io.github.mschache.karoopro.calc.ProfilePoint
 import io.github.mschache.karoopro.calc.WorkoutState
 import io.github.mschache.karoopro.coach.CoachInfo
@@ -16,7 +16,6 @@ import io.github.mschache.karoopro.karoo.field
 import io.github.mschache.karoopro.weather.WeatherData
 import io.hammerhead.karooext.models.BatteryStatus
 import io.hammerhead.karooext.models.DataType
-import io.hammerhead.karooext.models.OnNavigationState
 
 data class Batteries(
     val frontDerailleur: BatteryStatus? = null,
@@ -46,6 +45,8 @@ interface RideSource {
     fun terrainBehind(meters: Double): List<ProfilePoint>
     /** Route profile ahead within [meters], distances relative to the rider; empty when not navigating. */
     fun terrainAhead(meters: Double): List<ProfilePoint>
+    /** The climb the rider is on or the next one on the navigated route; null without one. */
+    val climb: ClimbView?
     val workout: WorkoutState?
     /** The planned step after the running one, when Karoo Coach's relay matched the workout. */
     val workoutNext: PlanStep?
@@ -80,18 +81,8 @@ class LiveSource(private val g: AppGraph) : RideSource {
     override val hrZoneSeconds get() = g.recorder.read { hrZoneTime.seconds.copyOf() }
     override fun terrainBehind(meters: Double) = g.recorder.read { terrain.window(meters) }
 
-    private var routeCache: Pair<String, List<ProfilePoint>>? = null
-
-    override fun terrainAhead(meters: Double): List<ProfilePoint> {
-        val nav = g.hub.navigation.value as? OnNavigationState.NavigationState.NavigatingRoute ?: return emptyList()
-        val encoded = nav.routeElevationPolyline ?: return emptyList()
-        val route = routeCache?.takeIf { it.first == encoded }?.second
-            ?: Polyline.decode(encoded, 1).map { ProfilePoint(it.first, it.second) }.also { routeCache = encoded to it }
-        val toGo = g.hub.stream(DataType.Type.DISTANCE_TO_DESTINATION).value.field(DataType.Field.DISTANCE_TO_DESTINATION) ?: return emptyList()
-        val along = nav.routeDistance - toGo
-        return route.filter { it.distance >= along && it.distance <= along + meters }
-            .map { ProfilePoint(it.distance - along, it.elevation) }
-    }
+    override fun terrainAhead(meters: Double): List<ProfilePoint> = g.routes.terrainAhead(meters)
+    override val climb get() = g.routes.climbView()
 
     override val workout get() = g.workout.state.value
     override val workoutNext get() = g.workout.next.value

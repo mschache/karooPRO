@@ -112,6 +112,7 @@ fun SettingsScreen() {
         Toggle("Open Workout panel when a workout starts", settings.autoOpenWorkout) { v -> update { it.copy(autoOpenWorkout = v) } }
         Toggle("Open Bike panel when Di2/AXS connects", settings.autoOpenBike) { v -> update { it.copy(autoOpenBike = v) } }
         Toggle("Open Coach panel on a new coach message", settings.autoOpenCoach) { v -> update { it.copy(autoOpenCoach = v) } }
+        Toggle("Open Climb panel before each climb on a route", settings.autoOpenClimb) { v -> update { it.copy(autoOpenClimb = v) } }
         val coach by context.graph.coach.state.collectAsState()
         Text(
             when {

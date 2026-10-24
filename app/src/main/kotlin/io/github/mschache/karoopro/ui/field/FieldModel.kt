@@ -106,6 +106,26 @@ data class EffortContent(
     val terrainLabel: String,
 ) : PanelContent
 
+/** One slice of a climb's profile: [from]/[to] 0..1 along the climb, heights 0..1 from its foot to its top, grade in %. */
+data class ClimbBar(val from: Float, val to: Float, val fromHeight: Float, val toHeight: Float, val grade: Float)
+
+data class ClimbContent(
+    /** "CLIMB 2/5", or "CLIMB 2/5 IN 1.20 KM" before it starts. */
+    val title: String,
+    /** "W′ EMPTY IN 3:20" or "W′ OK"; null without a power meter. */
+    val effort: String?,
+    /** W′ runs out before the top at this power. */
+    val effortWarning: Boolean,
+    /** Two large values: to the top on the climb, the climb's length and gain before it. */
+    val big: List<Stat>,
+    val stats: List<Stat>,
+    val bars: List<ClimbBar>,
+    /** The rider's place 0..1 along the climb; null before it starts. */
+    val rider: Float?,
+    /** Shown instead of everything else when there's no climb. */
+    val message: String? = null,
+) : PanelContent
+
 data class HourModel(val label: String, val speed: String, val relativeToDeg: Float?, val kind: WindKind?)
 
 data class WeatherContent(

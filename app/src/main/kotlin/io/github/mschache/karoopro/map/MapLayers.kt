@@ -4,8 +4,6 @@ import android.util.Log
 import io.github.mschache.karoopro.R
 import io.github.mschache.karoopro.calc.GeoPoint
 import io.github.mschache.karoopro.calc.GradeRuns
-import io.github.mschache.karoopro.calc.Polyline
-import io.github.mschache.karoopro.calc.ProfilePoint
 import io.github.mschache.karoopro.calc.RouteGeometry
 import io.github.mschache.karoopro.calc.RouteRun
 import io.github.mschache.karoopro.calc.RouteWind
@@ -15,8 +13,8 @@ import io.github.mschache.karoopro.calc.WindRuns
 import io.github.mschache.karoopro.calc.encodePolyline
 import io.github.mschache.karoopro.data.Metric
 import io.github.mschache.karoopro.data.RideDataHub
+import io.github.mschache.karoopro.data.RouteTracker
 import io.github.mschache.karoopro.data.Settings
-import io.github.mschache.karoopro.karoo.field
 import io.github.mschache.karoopro.karoo.httpGet
 import io.github.mschache.karoopro.weather.OpenMeteo
 import io.hammerhead.karooext.internal.Emitter
@@ -24,7 +22,6 @@ import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.HidePolyline
 import io.hammerhead.karooext.models.HideSymbols
 import io.hammerhead.karooext.models.MapEffect
-import io.hammerhead.karooext.models.OnNavigationState.NavigationState
 import io.hammerhead.karooext.models.ShowPolyline
 import io.hammerhead.karooext.models.ShowSymbols
 import io.hammerhead.karooext.models.Symbol
@@ -43,19 +40,16 @@ import kotlin.math.floor
  */
 class MapLayers(
     private val hub: RideDataHub,
+    private val routes: RouteTracker,
     private val settings: StateFlow<Settings>,
     private val scope: CoroutineScope,
     private val memory: MapLayerMemory,
 ) {
-    private class Route(val key: String, val geometry: RouteGeometry, val profile: List<ProfilePoint>, val routeDistance: Double?)
-
     /** Wind samples along the route, valid for one route and a start distance. */
     private class WindCache(val routeKey: String, val fromAlong: Double, val fetchedAt: Long, val samples: List<Pair<GeoPoint, RouteWind>>)
 
-    private var route: Route? = null
     private var wind: WindCache? = null
     private var nextWindFetch = 0L
-    private var lastAlong: Double? = null
 
     fun run(emitter: Emitter<MapEffect>): Job = scope.launch {
         val shownLines = LinkedHashMap<String, String>() // id -> signature
@@ -74,7 +68,7 @@ class MapLayers(
             while (isActive) {
                 try {
                     val s = settings.value
-                    val r = currentRoute()
+                    val r = routes.current()
                     val anyLayer = s.mapWindRoute || s.mapClimbs || s.mapWindArrows
                     val state = "nav=${hub.navigation.value?.javaClass?.simpleName} route=${r?.geometry?.length?.toInt()} m " +
                         "profile=${r?.profile?.size} wind=${wind?.samples?.size}"
@@ -131,55 +125,10 @@ class MapLayers(
         memory.remember(emptyList(), emptyList())
     }
 
-    /** Debug builds: a synthetic route shown when nothing is being navigated (indoor testing without GPS). */
-    @Volatile private var demoRoute: Route? = null
+    /** Meters along the route, in 500 m steps so the layers redraw every 500 m, not every meter. */
+    private fun alongRoute(r: RouteTracker.Route): Double = floor(routes.along(r) / STEP_M) * STEP_M
 
-    fun showDemoRoute(lat: Double, lng: Double) {
-        // A ~12 km loop: 3 km north, 3 km east, 3 km south, 3 km west, with three climbs.
-        val dLat = 3_000.0 / 111_195.0
-        val dLng = dLat / kotlin.math.cos(Math.toRadians(lat))
-        val corners = listOf(GeoPoint(lat, lng), GeoPoint(lat + dLat, lng), GeoPoint(lat + dLat, lng + dLng), GeoPoint(lat, lng + dLng), GeoPoint(lat, lng))
-        val pts = corners.zipWithNext().flatMap { (a, b) -> (0 until 10).map { i -> GeoPoint(a.lat + (b.lat - a.lat) * i / 10, a.lng + (b.lng - a.lng) * i / 10) } } + corners.last()
-        val profile = listOf(
-            0.0 to 40.0, 2_000.0 to 40.0, 3_000.0 to 120.0, 5_000.0 to 120.0, 7_000.0 to 60.0,
-            7_400.0 to 60.0, 8_000.0 to 130.0, 9_500.0 to 130.0, 9_800.0 to 170.0, 12_000.0 to 40.0,
-        ).map { ProfilePoint(it.first, it.second) }
-        demoRoute = Route("demo:$lat,$lng", RouteGeometry(pts), profile, null)
-        wind = null
-        nextWindFetch = 0
-    }
-
-    fun hideDemoRoute() {
-        demoRoute = null
-    }
-
-    private fun currentRoute(): Route? {
-        val (polyline, elevation, routeDistance) = when (val nav = hub.navigation.value) {
-            is NavigationState.NavigatingRoute -> Triple(nav.routePolyline, nav.routeElevationPolyline, nav.routeDistance)
-            is NavigationState.NavigatingToDestination -> Triple(nav.polyline, nav.elevationPolyline, null)
-            else -> return demoRoute
-        }
-        if (polyline.isBlank()) return null
-        val key = polyline.hashCode().toString() + ":" + polyline.length
-        route?.takeIf { it.key == key }?.let { return it }
-        val geometry = RouteGeometry.fromEncoded(polyline)
-        val profile = elevation?.let { e -> Polyline.decode(e, 1).map { ProfilePoint(it.first, it.second) } }.orEmpty()
-        wind = null
-        lastAlong = null
-        return Route(key, geometry, profile, routeDistance).also { route = it }
-    }
-
-    /** Meters along the route, from the distance left to the destination; start of the route until known. */
-    private fun alongRoute(r: Route): Double {
-        val toGo = hub.stream(DataType.Type.DISTANCE_TO_DESTINATION).value.field(DataType.Field.DISTANCE_TO_DESTINATION)
-        val total = r.routeDistance ?: r.geometry.length
-        val along = toGo?.let { (total - it).coerceIn(0.0, r.geometry.length) } ?: lastAlong ?: 0.0
-        lastAlong = along
-        // Redraw every 500 m, not every meter.
-        return floor(along / STEP_M) * STEP_M
-    }
-
-    private suspend fun refreshWind(r: Route, along: Double) {
+    private suspend fun refreshWind(r: RouteTracker.Route, along: Double) {
         val now = System.currentTimeMillis()
         val w = wind
         val stale = w == null || w.routeKey != r.key || along - w.fromAlong > REFETCH_ALONG_M || now - w.fetchedAt > REFRESH_MS
@@ -210,12 +159,12 @@ class MapLayers(
         }
     }
 
-    private fun layers(s: Settings, r: Route, along: Double): Pair<List<ShowPolyline>, List<Symbol>> {
+    private fun layers(s: Settings, r: RouteTracker.Route, along: Double): Pair<List<ShowPolyline>, List<Symbol>> {
         val g = r.geometry
         val lines = ArrayList<ShowPolyline>()
         val both = s.mapClimbs && s.mapWindRoute
         if (s.mapClimbs && r.profile.isNotEmpty()) {
-            GradeRuns.runs(r.profile, along, minOf(g.length, along + CLIMB_AHEAD_M)).forEachIndexed { i, run ->
+            GradeRuns.runs(r.elevation, along, minOf(g.length, along + CLIMB_AHEAD_M)).forEachIndexed { i, run ->
                 lines += line("climb-$i", g, run, CLIMB_COLORS[run.bucket], if (both) 16 else 10)
             }
         }

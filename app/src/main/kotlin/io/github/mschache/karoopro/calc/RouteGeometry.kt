@@ -101,30 +101,16 @@ object GradeRuns {
      * Colored climbing stretches between [from] and [to], from an elevation profile of
      * (distance along route, elevation) points. Grade is measured over [window] meters per [step].
      */
-    fun runs(profile: List<ProfilePoint>, from: Double, to: Double, step: Double = 100.0, window: Double = 200.0): List<RouteRun> {
-        if (profile.size < 2 || to <= from) return emptyList()
-        val sorted = profile.sortedBy { it.distance }
-        fun elevationAt(d: Double): Double {
-            if (d <= sorted.first().distance) return sorted.first().elevation
-            if (d >= sorted.last().distance) return sorted.last().elevation
-            var lo = 0
-            var hi = sorted.size - 1
-            while (hi - lo > 1) {
-                val mid = (lo + hi) / 2
-                if (sorted[mid].distance <= d) lo = mid else hi = mid
-            }
-            val a = sorted[lo]
-            val b = sorted[hi]
-            val t = if (b.distance > a.distance) (d - a.distance) / (b.distance - a.distance) else 0.0
-            return a.elevation + (b.elevation - a.elevation) * t
-        }
+    fun runs(profile: List<ProfilePoint>, from: Double, to: Double, step: Double = 100.0, window: Double = 200.0): List<RouteRun> =
+        runs(ElevationProfile(profile), from, to, step, window)
+
+    fun runs(profile: ElevationProfile, from: Double, to: Double, step: Double = 100.0, window: Double = 200.0): List<RouteRun> {
+        if (profile.isEmpty || to <= from) return emptyList()
         val runs = ArrayList<RouteRun>()
         var d = from
         while (d < to) {
             val end = minOf(d + step, to)
-            val mid = (d + end) / 2
-            val grade = (elevationAt(mid + window / 2) - elevationAt(mid - window / 2)) / window * 100
-            runs += RouteRun(d, end, bucket(grade))
+            runs += RouteRun(d, end, bucket(profile.grade((d + end) / 2, window)))
             d = end
         }
         return mergeRuns(runs)
