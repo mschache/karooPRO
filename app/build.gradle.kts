@@ -15,9 +15,10 @@ val appVersionCode: Int = appVersionName.split(".").map { it.toInt() }.let { (ma
 }
 val releaseBaseUrl = "https://github.com/mschache/karooPRO/releases/latest/download"
 
-// Release signing comes from env vars (CI) or an untracked keystore.properties (local).
+// Release signing comes from env vars (CI), an untracked keystore.properties, or ~/.karoopro (local).
 val signingProps = Properties().apply {
-    val f = rootProject.file("keystore.properties")
+    val home = File(System.getProperty("user.home"), ".karoopro/keystore.properties")
+    val f = rootProject.file("keystore.properties").takeIf { it.exists() } ?: home
     if (f.exists()) f.inputStream().use { load(it) }
 }
 fun signingValue(key: String): String? = System.getenv(key) ?: signingProps.getProperty(key)
@@ -56,6 +57,9 @@ android {
     buildTypes {
         debug {
             applicationIdSuffix = ""
+            // With the release key at hand, debug builds install over release builds on a test Karoo.
+            val release = signingConfigs.getByName("release")
+            if (release.storeFile != null) signingConfig = release
         }
         release {
             isMinifyEnabled = false
