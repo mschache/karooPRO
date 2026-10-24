@@ -4,6 +4,7 @@
     icon="@drawable/ic_karoopro"
     id="karoopro"
     mapLayer="true"
+    fitFile="true"
     scansDevices="false">
     <DataType
         description="@string/pro_description"
@@ -11,6 +12,12 @@
         graphical="true"
         icon="@drawable/ic_karoopro"
         typeId="pro" />
+    <DataType
+        description="@string/strip_description"
+        displayName="@string/strip_name"
+        graphical="true"
+        icon="@drawable/ic_karoopro"
+        typeId="strip" />
     <DataType
         description="@string/wind_description"
         displayName="@string/wind_name"
@@ -56,4 +63,13 @@
     <BonusAction
         actionId="cycle-metric"
         displayName="@string/action_cycle_metric" />
+    <BonusAction
+        actionId="log-gel"
+        displayName="@string/action_log_gel" />
+    <BonusAction
+        actionId="log-bar"
+        displayName="@string/action_log_bar" />
+    <BonusAction
+        actionId="log-bottle"
+        displayName="@string/action_log_bottle" />
 </ExtensionInfo>

@@ -2,13 +2,16 @@ package io.github.mschache.karoopro.ui.field
 
 import io.github.mschache.karoopro.AppGraph
 import io.github.mschache.karoopro.calc.ClimbView
+import io.github.mschache.karoopro.calc.FuelSnapshot
 import io.github.mschache.karoopro.calc.Gearing
 import io.github.mschache.karoopro.calc.ProfilePoint
+import io.github.mschache.karoopro.calc.RideResult
 import io.github.mschache.karoopro.calc.SegmentState
 import io.github.mschache.karoopro.calc.WorkoutState
 import io.github.mschache.karoopro.coach.CoachInfo
 import io.github.mschache.karoopro.coach.PlanStep
 import io.github.mschache.karoopro.data.Metric
+import io.github.mschache.karoopro.data.PaceState
 import io.github.mschache.karoopro.data.Profile
 import io.github.mschache.karoopro.data.Settings
 import io.github.mschache.karoopro.data.Source
@@ -50,6 +53,12 @@ interface RideSource {
     val climb: ClimbView?
     /** The Strava Live Segment coming up, running or just finished; null otherwise. */
     val segment: SegmentState?
+    /** Finished climbs and segments this ride, newest first. */
+    val results: List<RideResult>
+    /** The pacing plan's view of the navigated route; null without one. */
+    val pace: PaceState?
+    /** Carbs burned, eaten and drink so far this ride. */
+    val fuel: FuelSnapshot
     val workout: WorkoutState?
     /** The planned step after the running one, when Karoo Coach's relay matched the workout. */
     val workoutNext: PlanStep?
@@ -87,6 +96,9 @@ class LiveSource(private val g: AppGraph) : RideSource {
     override fun terrainAhead(meters: Double): List<ProfilePoint> = g.routes.terrainAhead(meters)
     override val climb get() = g.routes.climbView()
     override val segment get() = g.segments.state.value
+    override val results get() = g.results.results.value
+    override val pace get() = g.pace.state()
+    override val fuel get() = g.recorder.read { fuel.state }
 
     override val workout get() = g.workout.state.value
     override val workoutNext get() = g.workout.next.value
@@ -94,22 +106,7 @@ class LiveSource(private val g: AppGraph) : RideSource {
     override val weather get() = g.weather.weather.value
     override val weatherStatus get() = g.weather.status.value
     override val heading get() = g.weather.heading
-    override val gearing: Gearing?
-        get() {
-            val s = g.hub.stream(DataType.Type.SHIFTING_GEARS).value
-            val front = s.field(DataType.Field.SHIFTING_FRONT_GEAR) ?: return null
-            val shifter = g.hub.savedDevices.value?.devices?.firstOrNull { it.gearInfo != null }?.gearInfo
-            return Gearing(
-                frontGear = front.toInt(),
-                frontMax = s.field(DataType.Field.SHIFTING_FRONT_GEAR_MAX)?.toInt() ?: shifter?.maxFrontGears,
-                rearGear = s.field(DataType.Field.SHIFTING_REAR_GEAR)?.toInt(),
-                rearMax = s.field(DataType.Field.SHIFTING_REAR_GEAR_MAX)?.toInt() ?: shifter?.maxRearGears,
-                frontTeeth = s.field(DataType.Field.SHIFTING_FRONT_GEAR_TEETH)?.toInt()?.takeIf { it > 0 },
-                rearTeeth = s.field(DataType.Field.SHIFTING_REAR_GEAR_TEETH)?.toInt()?.takeIf { it > 0 },
-                frontTeethList = shifter?.frontTeeth,
-                rearTeethList = shifter?.rearTeeth,
-            )
-        }
+    override val gearing: Gearing? get() = g.gears.gearing()
     override val batteries: Batteries
         get() {
             val s = g.hub.stream(DataType.Type.SHIFTING_BATTERY).value

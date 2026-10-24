@@ -1,8 +1,5 @@
 package io.github.mschache.karoopro.calc
 
-import kotlin.math.abs
-import kotlin.math.roundToLong
-
 /**
  * The Karoo's Strava Live Segment values at one moment: times in ms, distances and elevation in
  * meters. Deltas are negative when ahead (faster than the PR, KOM or carrot), as on the Karoo's own
@@ -62,9 +59,6 @@ class SegmentTracker(private val holdMs: Long = 10_000, private val approachM: D
 
     companion object {
         /** "-0:07" (ahead) or "+1:12" (behind) from milliseconds. */
-        fun delta(ms: Double?): String {
-            val s = ms?.takeIf { it.isFinite() }?.let { (it / 1000).roundToLong() } ?: return Fmt.NONE
-            return (if (s < 0) "-" else "+") + Fmt.seconds(abs(s))
-        }
+        fun delta(ms: Double?): String = Fmt.delta(ms)
     }
 }

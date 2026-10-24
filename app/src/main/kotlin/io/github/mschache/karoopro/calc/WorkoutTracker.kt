@@ -74,6 +74,20 @@ object TargetBand {
         return (v - band).roundToInt() to (v + band).roundToInt()
     }
 
+    /**
+     * How far [output] is outside the band, as a fraction of the band edge: 0 inside, negative below,
+     * positive above, reaching ±1 at [fullAt] (15 %) off the edge; null without data.
+     */
+    fun deviation(output: Int?, bounds: Pair<Int, Int>?, fullAt: Double = 0.15): Double? {
+        if (output == null || bounds == null) return null
+        val (low, high) = bounds
+        return when {
+            output < low -> -((low - output) / (low * fullAt)).coerceAtMost(1.0)
+            output > high -> ((output - high) / (high * fullAt)).coerceAtMost(1.0)
+            else -> 0.0
+        }
+    }
+
     fun status(output: Int?, bounds: Pair<Int, Int>?): TargetStatus = when {
         output == null || bounds == null -> TargetStatus.NO_DATA
         output < bounds.first -> TargetStatus.PUSH

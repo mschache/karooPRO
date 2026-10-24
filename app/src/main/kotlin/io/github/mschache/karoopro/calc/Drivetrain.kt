@@ -53,3 +53,20 @@ data class Gearing(
             return (bigRing && pos <= edgeFraction + 1e-4f) || (smallRing && pos >= 1f - edgeFraction - 1e-4f)
         }
 }
+
+/** The end of the cassette: [TOP] is the smallest (hardest) cog, [BOTTOM] the largest (easiest). */
+enum class GearLimit { TOP, BOTTOM }
+
+object GearLimits {
+    /** The limit just shifted into: only when the rear gear changed and now sits on an end of the cassette. */
+    fun reached(previous: Gearing?, now: Gearing?): GearLimit? {
+        val gear = now?.rearGear ?: return null
+        if (previous?.rearGear == null || previous.rearGear == gear) return null
+        val pos = now.rearPosition ?: return null
+        return when {
+            pos >= 1f - 1e-4f -> GearLimit.TOP
+            pos <= 1e-4f -> GearLimit.BOTTOM
+            else -> null
+        }
+    }
+}

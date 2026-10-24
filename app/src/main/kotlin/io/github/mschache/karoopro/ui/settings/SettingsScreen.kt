@@ -3,14 +3,15 @@ package io.github.mschache.karoopro.ui.settings
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -39,6 +40,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.mschache.karoopro.BuildConfig
+import io.github.mschache.karoopro.calc.FuelItem
 import io.github.mschache.karoopro.data.AlertStyle
 import io.github.mschache.karoopro.data.BigMetric
 import io.github.mschache.karoopro.data.ColorMode
@@ -214,6 +216,69 @@ fun SettingsScreen() {
         Toggle("Countdown beeps 5-4-3-2-1", settings.countdownBeeps) { v -> update { it.copy(countdownBeeps = v) } }
         Toggle("Karoo pop-up on pages without KarooPRO", settings.systemAlert) { v -> update { it.copy(systemAlert = v) } }
 
+        Section("Bike")
+        Toggle("Beep at the smallest and largest cog (Di2/AXS)", settings.gearLimitBeep) { v -> update { it.copy(gearLimitBeep = v) } }
+
+        Section("Fuel")
+        Stepper("Carbs", "${settings.carbsPerHour} g/h",
+            onMinus = { update { s -> s.copy(carbsPerHour = s.carbsPerHour - 5) } },
+            onPlus = { update { s -> s.copy(carbsPerHour = s.carbsPerHour + 5) } },
+        )
+        Stepper("Drink", "${settings.drinkMlPerHour} ml/h",
+            onMinus = { update { s -> s.copy(drinkMlPerHour = s.drinkMlPerHour - 50) } },
+            onPlus = { update { s -> s.copy(drinkMlPerHour = s.drinkMlPerHour + 50) } },
+        )
+        Toggle("Remind me to eat and drink (beep, and pop-up on other pages)", settings.fuelReminders) { v -> update { it.copy(fuelReminders = v) } }
+        Stepper("Gel", "${settings.gelCarbs} g",
+            onMinus = { update { s -> s.copy(gelCarbs = s.gelCarbs - 5) } },
+            onPlus = { update { s -> s.copy(gelCarbs = s.gelCarbs + 5) } },
+        )
+        Stepper("Bar", "${settings.barCarbs} g",
+            onMinus = { update { s -> s.copy(barCarbs = s.barCarbs - 5) } },
+            onPlus = { update { s -> s.copy(barCarbs = s.barCarbs + 5) } },
+        )
+        Stepper("Bottle", "${settings.bottleCarbs} g",
+            onMinus = { update { s -> s.copy(bottleCarbs = s.bottleCarbs - 5) } },
+            onPlus = { update { s -> s.copy(bottleCarbs = s.bottleCarbs + 5) } },
+        )
+        Stepper("Bottle", "${settings.bottleMl} ml",
+            onMinus = { update { s -> s.copy(bottleMl = s.bottleMl - 50) } },
+            onPlus = { update { s -> s.copy(bottleMl = s.bottleMl + 50) } },
+        )
+        Text("A tap in the middle of the Fuel panel logs", Modifier.padding(top = 4.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 12.sp)
+        Choice(FuelItem.entries, settings.tapLogs, { it.label.lowercase().replaceFirstChar { c -> c.uppercase() } }) { v -> update { it.copy(tapLogs = v) } }
+
+        Section("Pacing (while navigating)")
+        Stepper("Flat", "${settings.paceIntensity}% FTP",
+            onMinus = { update { s -> s.copy(paceIntensity = s.paceIntensity - 5) } },
+            onPlus = { update { s -> s.copy(paceIntensity = s.paceIntensity + 5) } },
+        )
+        Stepper("Bike", "${settings.bikeKg} kg",
+            onMinus = { update { s -> s.copy(bikeKg = s.bikeKg - 1) } },
+            onPlus = { update { s -> s.copy(bikeKg = s.bikeKg + 1) } },
+        )
+        Text("Riding position (for the speed model)", Modifier.padding(top = 4.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 12.sp)
+        Choice(POSITIONS, POSITIONS.minBy { kotlin.math.abs(it.second - settings.cda) }, { it.first }) { v -> update { it.copy(cda = v.second) } }
+
+        Section("PRO Strip field")
+        settings.stripMetrics.forEachIndexed { i, m ->
+            PickRow("Value ${i + 1}", m.label) {
+                picker = Picker("Strip value ${i + 1}", Metric.selectableEntries.map { it.label }) { idx ->
+                    val chosen = Metric.selectableEntries[idx]
+                    update { s -> s.copy(stripMetrics = s.stripMetrics.toMutableList().also { it[i] = chosen }) }
+                }
+            }
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            if (settings.stripMetrics.size < Settings.STRIP_MAX) {
+                TextButton(onClick = { update { s -> s.copy(stripMetrics = s.stripMetrics + Metric.SPEED) } }) { Text("Add a value") }
+            }
+            if (settings.stripMetrics.size > 1) {
+                TextButton(onClick = { update { s -> s.copy(stripMetrics = s.stripMetrics.dropLast(1)) } }) { Text("Remove the last") }
+            }
+        }
+        Toggle("Show segment gap, workout target and distance to the top when they matter", settings.stripContext) { v -> update { it.copy(stripContext = v) } }
+
         Section("Map layers (while navigating)")
         Toggle("Wind on the route ahead (green tail, yellow cross, red head)", settings.mapWindRoute) { v -> update { it.copy(mapWindRoute = v) } }
         Toggle("Climbs by grade (grey to black band, darker = steeper)", settings.mapClimbs) { v -> update { it.copy(mapClimbs = v) } }
@@ -224,6 +289,9 @@ fun SettingsScreen() {
         Spacer(Modifier.height(24.dp))
     }
 }
+
+/** CdA by riding position, for the pacing speed model. */
+private val POSITIONS = listOf("Upright (MTB, gravel tops)" to 0.40, "Hoods" to 0.32, "Drops" to 0.28, "Aero bars" to 0.24)
 
 private fun <T> List<T>.swap(a: Int, b: Int): List<T> = toMutableList().also {
     val tmp = it[a]
@@ -299,9 +367,10 @@ private fun PickRow(label: String, value: String, onClick: () -> Unit) {
 @Composable
 private fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: () -> Unit) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text(label, Modifier.width(40.dp), color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
-        OutlinedButton(onClick = onMinus) { Text("−") }
-        Text(value, Modifier.weight(1f).padding(horizontal = 6.dp), color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold)
-        OutlinedButton(onClick = onPlus) { Text("+") }
+        Text(label, Modifier.width(56.dp), color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, maxLines = 1)
+        // Compact buttons leave room for values like "500 ml/h" on the Karoo's narrow screen.
+        OutlinedButton(onClick = onMinus, Modifier.size(width = 48.dp, height = 40.dp), contentPadding = PaddingValues(0.dp)) { Text("−") }
+        Text(value, Modifier.weight(1f).padding(horizontal = 6.dp), color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, softWrap = false)
+        OutlinedButton(onClick = onPlus, Modifier.size(width = 48.dp, height = 40.dp), contentPadding = PaddingValues(0.dp)) { Text("+") }
     }
 }

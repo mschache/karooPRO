@@ -1,9 +1,13 @@
 package io.github.mschache.karoopro.ui.field
 
+import io.github.mschache.karoopro.calc.ClimbResult
 import io.github.mschache.karoopro.calc.Fmt
+import io.github.mschache.karoopro.calc.FuelTracker
 import io.github.mschache.karoopro.calc.LapCompare
 import io.github.mschache.karoopro.calc.SegmentPhase
+import io.github.mschache.karoopro.calc.SegmentResult
 import io.github.mschache.karoopro.calc.SegmentTracker
+import io.github.mschache.karoopro.calc.TargetStatus
 import io.github.mschache.karoopro.calc.Trend
 import io.github.mschache.karoopro.calc.Wind
 import io.github.mschache.karoopro.calc.ZoneColors
@@ -101,6 +105,11 @@ object FieldModelBuilder {
                 add(DataType.Type.CADENCE)
             }
             Panel.SEGMENT -> addAll(SegmentMonitor.TYPES)
+            Panel.PACE -> {
+                listOf(Metric.ELAPSED_TIME, Metric.DISTANCE).mapNotNullTo(this) { it.karoo?.typeId }
+                add(DataType.Type.DISTANCE_TO_DESTINATION)
+            }
+            Panel.FUEL, Panel.RESULTS -> Unit
             Panel.WEATHER, Panel.WORKOUT, Panel.COACH -> Unit
         }
     }
@@ -340,7 +349,151 @@ object FieldModelBuilder {
             Panel.CLIMB -> climb(src)
 
             Panel.SEGMENT -> segment(src)
+
+            Panel.RESULTS -> results(src)
+
+            Panel.FUEL -> fuel(src)
+
+            Panel.PACE -> pace(src, p)
         }
+    }
+
+    /**
+     * The PRO Strip: the chosen values, with the segment gap, the workout target and the distance to
+     * the top taking the first places while they matter (unless switched off).
+     */
+    fun strip(src: RideSource, systemDark: Boolean): StripModel {
+        val s = src.settings
+        val p = palette(s.theme, systemDark)
+        val u = src.profile.units
+        val base = s.stripMetrics.map { m ->
+            val v = src.value(m)
+            val color = when (m) {
+                Metric.HEADWIND -> v?.let { if (it > 1) p.bad else if (it < -1) p.good else null }
+                Metric.CARBS_BALANCE -> v?.let { if (it < -src.settings.gelCarbs * 2) p.warn else p.good }
+                Metric.STAMINA_NOW, Metric.STAMINA -> v?.let { if (it < 25) p.bad else null }
+                Metric.PACE_AHEAD -> v?.let { if (it >= 0) p.good else p.warn }
+                else -> null
+            }
+            StripCell(m.label, m.format(v, u), m.unit(u), color)
+        }
+        if (!s.stripContext) return StripModel(p, base)
+        val context = buildList {
+            src.segment?.takeIf { it.phase != SegmentPhase.APPROACHING }?.let { seg ->
+                val d = seg.reading.prDelta
+                add(StripCell("VS PR", SegmentTracker.delta(d), "", d?.takeIf { it != 0.0 }?.let { if (it < 0) p.good else p.bad }))
+            }
+            src.workout?.let { w ->
+                if (w.low != null && w.high != null) {
+                    add(StripCell("TARGET", "${w.low}–${w.high}", w.kind.unit, if (w.status == TargetStatus.IN_RANGE) p.good else if (w.status == TargetStatus.NO_DATA) null else p.warn))
+                }
+            }
+            src.climb?.progress?.takeIf { it.onClimb || it.toStart <= 500 }?.let { c ->
+                add(StripCell(if (c.onClimb) "TO TOP" else "CLIMB IN", Fmt.distance(if (c.onClimb) c.toTop else c.toStart, u), Fmt.distanceUnit(u)))
+            }
+        }
+        val keep = (base.size - context.size).coerceAtLeast(base.size.coerceAtMost(3) - context.size).coerceAtLeast(0)
+        return StripModel(p, context + base.take(keep))
+    }
+
+    private fun results(src: RideSource): ResultsContent {
+        val u = src.profile.units
+        val km = Fmt.distanceUnit(u)
+        val weight = src.profile.weightKg.takeIf { it > 0 }
+        return ResultsContent(
+            src.results.map { r ->
+                when (r) {
+                    is ClimbResult -> ResultRow(
+                        title = "CLIMB ${r.number}/${r.total} · ${Fmt.distance(r.length, u)} $km · ${Fmt.decimal(r.gain / r.length * 100, 1)} %",
+                        main = Fmt.seconds(r.seconds.toLong()),
+                        detail = listOfNotNull(
+                            r.avgPower?.let { "${Fmt.int(it)} W" },
+                            r.avgPower?.let { p -> weight?.let { "${Fmt.decimal(p / it, 1)} W/kg" } },
+                            r.vam?.let { "VAM ${Fmt.int(it)}" },
+                        ).joinToString(" · "),
+                        good = null,
+                    )
+                    is SegmentResult -> ResultRow(
+                        title = "SEGMENT" + (r.length?.let { " · ${Fmt.distance(it, u)} $km" } ?: ""),
+                        main = Fmt.seconds(r.seconds.toLong()),
+                        detail = listOfNotNull(
+                            r.prDelta?.let { "PR ${Fmt.delta(it)}" },
+                            r.komDelta?.let { "KOM ${Fmt.delta(it)}" },
+                            r.avgPower?.let { "${Fmt.int(it)} W" },
+                        ).joinToString(" · "),
+                        good = r.prDelta?.takeIf { it != 0.0 }?.let { it < 0 },
+                    )
+                }
+            },
+        )
+    }
+
+    private fun fuel(src: RideSource): FuelContent {
+        val s = src.settings
+        val tracker = FuelTracker().apply { restore(src.fuel) }
+        val f = src.fuel
+        val target = tracker.targetCarbs(s.carbsPerHour)
+        fun minutes(seconds: Long?) = when {
+            seconds == null -> null
+            seconds <= 0 -> 0L
+            else -> (seconds + 59) / 60
+        }
+        val eatMin = minutes(tracker.secondsUntilEat(s.carbsPerHour, s.gelCarbs))
+        val drinkMin = minutes(tracker.secondsUntilDrink(s.drinkMlPerHour, s.bottleMl / 4))
+        val balance = f.eatenG - f.burnedG
+        // Burn rate now from power when there is any, else this ride's average.
+        val power = src.value(Metric.POWER_3S)
+        val ftp = src.profile.ftp.toDouble()
+        val nowRate = if (power != null && ftp > 0) FuelTracker.carbGrams(power / 1000 * FuelTracker.KCAL_PER_KJ_WORK, power / ftp) * 3600 else null
+        val avgRate = if (f.movingS > 60) f.burnedG / f.movingS * 3600 else null
+        return FuelContent(
+            title = "FUEL · ${s.carbsPerHour} g/h · BURN ${Fmt.int(nowRate ?: avgRate)} g/h",
+            eaten = Stat("EATEN", Fmt.int(f.eatenG), "g"),
+            burned = Stat("BURNED", Fmt.int(f.burnedG), "g"),
+            balance = Stat("BALANCE", (if (balance >= 0) "+" else "") + Fmt.int(balance), "g"),
+            onTrack = target <= 0 || f.eatenG + s.gelCarbs >= target,
+            targetFraction = if (target > 0) (f.eatenG / target).toFloat() else null,
+            eat = when (eatMin) {
+                null -> "EAT: NO TARGET"
+                0L -> "EAT NOW"
+                else -> "EAT IN $eatMin MIN"
+            },
+            eatDue = eatMin == 0L,
+            drink = when (drinkMin) {
+                null -> "DRINK: NO TARGET"
+                0L -> "DRINK NOW"
+                else -> "DRINK IN $drinkMin MIN · ${Fmt.int(f.drankMl)} ml"
+            },
+            drinkDue = drinkMin == 0L,
+            hint = "TAP TO LOG A ${s.tapLogs.label} (${s.fuelSizes.carbs(s.tapLogs)} g)",
+        )
+    }
+
+    private fun pace(src: RideSource, palette: Palette): PaceContent {
+        val u = src.profile.units
+        val p = src.pace
+            ?: return PaceContent("PACE", Fmt.NONE, null, null, null, TargetStatus.NO_DATA, "", emptyList(), "Navigate a route\nto pace it")
+        val next = p.next
+        val stamina = src.value(Metric.STAMINA)
+        return PaceContent(
+            title = "PACE · ${p.intensity} % FTP",
+            target = "${p.target}",
+            low = p.low,
+            high = p.high,
+            output = p.output,
+            status = p.status,
+            next = if (next != null && p.toNext != null) {
+                "NEXT ${next.power} W IN ${Fmt.distance(p.toNext, u)} ${Fmt.distanceUnit(u).uppercase()}"
+            } else {
+                "STEADY TO THE END"
+            },
+            stats = listOf(
+                Stat("VS PLAN", p.aheadS?.let { Fmt.delta(it * 1000) } ?: Fmt.NONE, accent = p.aheadS?.let { if (it >= 0) palette.good else palette.warn }),
+                Stat("ETA", Fmt.clock(p.etaMs.toDouble())),
+                Stat("TO GO", Fmt.seconds(p.remainingS.toLong())),
+                Stat("STAMINA", Fmt.int(stamina), "%"),
+            ),
+        )
     }
 
     private fun segment(src: RideSource): SegmentContent {

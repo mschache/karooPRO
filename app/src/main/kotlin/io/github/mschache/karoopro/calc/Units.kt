@@ -68,6 +68,12 @@ object Fmt {
 
     private const val DAY_MS = 86_400_000.0
 
+    /** "+1:20" or "-0:07" from signed milliseconds. */
+    fun delta(ms: Double?): String {
+        val s = ms?.takeIf { it.isFinite() }?.let { (it / 1000).roundToLong() } ?: return NONE
+        return (if (s < 0) "-" else "+") + seconds(abs(s))
+    }
+
     fun seconds(totalSeconds: Long): String {
         val s = abs(totalSeconds)
         val h = s / 3600

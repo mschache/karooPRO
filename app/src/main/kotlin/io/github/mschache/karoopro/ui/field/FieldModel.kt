@@ -143,6 +143,44 @@ data class SegmentContent(
     val message: String? = null,
 ) : PanelContent
 
+/** One finished climb or segment: [good] colors the main value (ahead of the PR), null leaves it plain. */
+data class ResultRow(val title: String, val main: String, val detail: String, val good: Boolean?)
+
+data class ResultsContent(val rows: List<ResultRow>) : PanelContent
+
+data class FuelContent(
+    val title: String,
+    val eaten: Stat,
+    val burned: Stat,
+    /** Eaten minus burned, and whether intake keeps up with the target so far. */
+    val balance: Stat,
+    val onTrack: Boolean,
+    /** Eaten as a share of the target so far, 0..1+; null before the target starts. */
+    val targetFraction: Float?,
+    val eat: String,
+    val eatDue: Boolean,
+    val drink: String,
+    val drinkDue: Boolean,
+    val hint: String,
+) : PanelContent
+
+data class PaceContent(
+    val title: String,
+    val target: String,
+    val low: Int?,
+    val high: Int?,
+    val output: Int?,
+    val status: io.github.mschache.karoopro.calc.TargetStatus,
+    val next: String,
+    val stats: List<Stat>,
+    val message: String? = null,
+) : PanelContent
+
+/** One value on the PRO Strip; [color] overrides the text color. */
+data class StripCell(val label: String, val value: String, val unit: String, val color: Int? = null)
+
+data class StripModel(val palette: Palette, val cells: List<StripCell>)
+
 data class HourModel(val label: String, val speed: String, val relativeToDeg: Float?, val kind: WindKind?)
 
 data class WeatherContent(

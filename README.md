@@ -12,11 +12,14 @@ Below that is a panel you flip with a tap on its left or right side.
 | **Effort** | 10-minute effort bars colored by zone, W′ balance, grade, VAM, ascent, terrain profile (the route ahead while navigating) |
 | **Climb** | While you navigate a route with climbs: opens by itself 200 m before each climb and goes back at the top. Climb number, distance and height to the top, average grade left, grade, VAM, time to the top, how long your W′ lasts at this power, and the climb's profile colored by grade. Before a climb it shows how far away it is, its length, gain, average and steepest grade |
 | **Segment** | Opens by itself when a Strava Live Segment comes up: the gap to your PR in big type (green ahead, red behind), the gap to the KOM, progress, time, distance and climbing left, then your result for 10 seconds |
+| **Pace** | While you navigate a route: a Power Guide-style target power for the stretch you're on (more on climbs, less on descents), PUSH / EASE, time ahead of or behind the plan, arrival time, time to go, stamina, and the next change of target |
+| **Fuel** | Carbs eaten versus burned (estimated from your power), whether you keep up with your target, and when to eat and drink next. A tap in the middle logs a gel (or a bar or bottle, as you choose). Beeps when it's time to eat or drink |
 | **Weather** | Head, tail or crosswind for your direction of travel, gusts, rain chance, temperature, and the next 6 hours (Open-Meteo) |
 | **Lap** | Four lap fields with ▲/▼ against the previous lap |
 | **Analysis** | Best 5 s / 1 min / 5 min / 20 min power, time in zones, NP, TSS, IF, climbing, work |
-| **Workout** | Opens by itself during a structured workout: step, time left, target with PUSH / EASE / IN RANGE, step average, time in target, and the next step's target when Karoo Coach knows your plan |
-| **Bike** | Opens by itself when Di2 or AXS connects: gears, drivetrain with cross-chain warning, batteries, L/R balance, shifts, ratio |
+| **Results** | Appears after your first finished climb or segment: each one with its time, average power, W/kg and VAM, or the gaps to your PR and KOM, newest first |
+| **Workout** | Opens by itself during a structured workout: step, time left, target with PUSH / EASE / IN RANGE (the color shades from green to blue or red as you drift off), step average, time in target, and the next step's target when Karoo Coach knows your plan |
+| **Bike** | Opens by itself when Di2 or AXS connects: gears, drivetrain with cross-chain warning, batteries, L/R balance, shifts, ratio. Beeps when you shift onto the smallest cog (two high blips) or the largest (two low ones) |
 | **Coach** | Appears when the [Karoo Coach](#karoo-coach) extension is installed and set up: your coach's latest message in big type, how old it is, and whether check-ins work. Opens by itself on a new message; tap it to confirm |
 
 With no power meter, KarooPRO starts on speed and colors by heart rate.
@@ -28,6 +31,7 @@ With no power meter, KarooPRO starts on speed and colors by heart rate.
 - Alerts can appear as a window over the panel or across the full field, plus a Karoo pop-up when you're on another page.
 
 **Extra fields you can place anywhere:**
+- **PRO Strip:** a slim row for map and data pages with up to 6 values you choose (by default W′ balance, stamina, headwind and carb balance). The segment gap, workout target and distance to the top take the first places while they matter.
 - **PRO Wind:** a compass that turns with your heading.
 - **PRO W′ Balance:** in kJ.
 - **PRO W′ Empty In:** how long your W′ lasts at your current 3-second power. Empty while you ride at or below CP.
@@ -43,6 +47,11 @@ With no power meter, KarooPRO starts on speed and colors by heart rate.
 - Time: time to sunset.
 - Navigation: distance to go, arrival time, climbing left.
 - W′ empty in, crosswind.
+- Stamina (long term and now), effort left at your current power.
+- Carbs burned, eaten and the balance.
+- Pace target and time ahead of or behind the plan.
+
+**Your FIT file** gets KarooPRO's own values as developer fields every second: W′ balance, carbs burned and eaten, stamina and headwind, plus the carb totals for the ride. intervals.icu shows them as extra charts.
 
 <p>
   <img src="docs/screenshot-1.png" width="240" alt="Workout panel">
@@ -100,12 +109,18 @@ Now ride:
 - Tap the top half to switch the big number.
 - Tap the left or right third of the lower half to change panels.
 
-You can also map **KarooPRO: next panel**, **previous panel** or **switch the big number** to a remote button as Karoo bonus actions.
+You can also map these to a remote button as Karoo bonus actions:
+- **KarooPRO: next panel**, **previous panel**, **switch the big number**.
+- **KarooPRO: ate a gel**, **ate a bar**, **drank a bottle**, to log fuel without looking.
 
 ## Settings
 
 Open the **KarooPRO** app on the Karoo to:
 - Hide or reorder panels, and choose whether Workout, Bike, Coach, Climb and Segment open by themselves.
+- Turn the gear-limit beep on or off.
+- Set your carbs (g/h) and drink (ml/h) targets, the reminders, the carbs in a gel, bar and bottle, and what a tap on the Fuel panel logs.
+- Set pacing: the target on the flat as % of FTP, your bike's weight and riding position.
+- Choose the PRO Strip's values.
 - Pick which big numbers the tap switches between and which one it starts on, the two cards under it, the zone color style (tint the page, fill the top, or color the number) and the theme.
 - Choose the 4 Ride tiles and the 4 Lap fields.
 - Set CP and W′ for W′ balance (CP defaults to your Karoo FTP; W′ to 20 kJ).
@@ -119,6 +134,10 @@ Open the **KarooPRO** app on the Karoo to:
 - **Next workout step.** The Karoo shares only the running workout step. The countdown to the next step is exact, but its target normally appears when the step starts. With [Karoo Coach](#karoo-coach) set up, and a workout from your intervals.icu plan or pushed through the coach, the Workout panel and the 10-second alert show the next step's duration and power target ahead of time (for example "NEXT 4:00 @ 280 W").
 - **Weather.** Weather comes from [Open-Meteo](https://open-meteo.com). It needs WiFi or the Companion app, and is fetched only while the Weather panel, a wind tile or card, or a wind field is in use: every 15 minutes, or after 3 km.
 - **Live Segments.** The Segment panel needs Strava Live Segments on the Karoo (a Strava subscription, with starred segments synced). The Karoo may also show its own segment screen; swipe back to the KarooPRO page to see the panel.
+- **Stamina, pacing and fuel are estimates.**
+  - **Stamina:** comes from your FTP, CP and W′. Above CP your W′ decides how long an effort lasts; below it, a long-duration power curve does.
+  - **Pacing:** assumes still air and a speed model from your weight, bike and position.
+  - **Carbs burned:** come from your power at about 24 % efficiency, with more carbohydrate the harder you ride. Without a power meter they come from the Karoo's calorie estimate and your heart rate.
 - **Battery levels.** Di2/AXS and power-meter batteries are shown as the levels the Karoo reports (new, good, OK, low, critical), not percentages.
 - **Rendering.** The field is drawn as a single image about once per second, the Karoo's limit for extension views. When its page is not on screen, it stops drawing.
 

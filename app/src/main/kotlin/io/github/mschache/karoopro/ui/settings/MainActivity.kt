@@ -79,6 +79,13 @@ class MainActivity : ComponentActivity() {
                     )
                     java.io.File(dir, "hero-${big.name.lowercase()}.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                 }
+                // The PRO Strip in a full-width and a half-width slot.
+                val strip = io.github.mschache.karoopro.ui.field.FieldModelBuilder.strip(
+                    io.github.mschache.karoopro.ui.field.DemoSource(graph.settings.value, graph.hub.profile.value), systemDark = true,
+                )
+                for ((name, size) in listOf("strip-wide" to (478 to 150), "strip-half" to (236 to 160))) {
+                    java.io.File(dir, "$name.png").outputStream().use { painter.paintStrip(strip, size.first, size.second).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                }
                 android.util.Log.i("KarooPRO", "exportshots written to $dir")
             }
         }

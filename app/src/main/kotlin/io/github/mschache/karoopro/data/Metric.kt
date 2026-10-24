@@ -12,7 +12,7 @@ sealed class Source {
     data object Computed : Source()
 }
 
-enum class Format { POWER, SPEED, HR, CADENCE, DISTANCE, DURATION, CLOCK, ELEVATION, GRADE, VAM, KJ, KCAL, KCAL_H, PERCENT, DECIMAL2, INT, TEMP, BODY_TEMP, PRESSURE, BALANCE, WKG, WIND }
+enum class Format { POWER, SPEED, HR, CADENCE, DISTANCE, DURATION, DELTA, CLOCK, ELEVATION, GRADE, VAM, KJ, KCAL, KCAL_H, PERCENT, DECIMAL2, INT, TEMP, BODY_TEMP, PRESSURE, BALANCE, WKG, WIND, GRAMS }
 
 /**
  * Every value a tile, card or lap field can show. [graph] names the metric whose 1 Hz history is
@@ -83,6 +83,17 @@ enum class Metric(
     W_PRIME("W' BAL", Source.Computed, Format.KJ, "W_PRIME"),
     /** Time until W' runs out at the current 3 s power; null at or below CP. */
     W_PRIME_EMPTY("W' EMPTY IN", Source.Computed, Format.DURATION),
+    /** Long-term and short-term stamina (estimates), and how long the current effort can last. */
+    STAMINA("STAMINA", Source.Computed, Format.PERCENT),
+    STAMINA_NOW("STAMINA NOW", Source.Computed, Format.PERCENT),
+    EFFORT_LEFT("EFFORT LEFT", Source.Computed, Format.DURATION),
+    /** Carbohydrate burned and eaten this ride, and eaten minus burned. */
+    CARBS_BURNED("CARBS BURNED", Source.Computed, Format.GRAMS),
+    CARBS_EATEN("CARBS EATEN", Source.Computed, Format.GRAMS),
+    CARBS_BALANCE("CARBS +/-", Source.Computed, Format.GRAMS),
+    /** Pacing on a navigated route: this stretch's target and the time ahead (+) or behind (-) the plan. */
+    PACE_TARGET("PACE TARGET", Source.Computed, Format.POWER),
+    PACE_AHEAD("VS PLAN", Source.Computed, Format.DELTA),
     HEADWIND("HEADWIND", Source.Computed, Format.WIND, "HEADWIND"),
     CROSSWIND("CROSSWIND", Source.Computed, Format.WIND),
     WIND_SPEED("WIND", Source.Computed, Format.WIND),
@@ -109,18 +120,20 @@ enum class Metric(
         Format.KJ -> "kJ"
         Format.KCAL -> "kcal"
         Format.KCAL_H -> "kcal/h"
+        Format.GRAMS -> "g"
         Format.TEMP, Format.BODY_TEMP -> Fmt.temperatureUnit(u)
         Format.PRESSURE -> Fmt.pressureUnit(u)
         Format.WKG -> "W/kg"
-        Format.DURATION, Format.CLOCK, Format.DECIMAL2, Format.INT, Format.BALANCE -> ""
+        Format.DURATION, Format.DELTA, Format.CLOCK, Format.DECIMAL2, Format.INT, Format.BALANCE -> ""
     }
 
     fun format(v: Double?, u: UnitPrefs): String = when (format) {
-        Format.POWER, Format.HR, Format.CADENCE, Format.INT, Format.KCAL, Format.KCAL_H, Format.PERCENT, Format.VAM -> Fmt.int(v)
+        Format.POWER, Format.HR, Format.CADENCE, Format.INT, Format.KCAL, Format.KCAL_H, Format.PERCENT, Format.VAM, Format.GRAMS -> Fmt.int(v)
         Format.SPEED -> Fmt.speed(v, u)
         Format.WIND -> v?.let { Fmt.int(Fmt.speedValue(it, u)) } ?: Fmt.NONE
         Format.DISTANCE -> Fmt.distance(v, u)
         Format.DURATION -> Fmt.duration(v)
+        Format.DELTA -> Fmt.delta(v)
         Format.CLOCK -> Fmt.clock(v)
         Format.ELEVATION -> Fmt.elevation(v, u)
         Format.GRADE -> Fmt.decimal(v, 1)

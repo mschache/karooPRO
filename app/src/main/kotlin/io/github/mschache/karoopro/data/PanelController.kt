@@ -33,6 +33,12 @@ class PanelController(
     private val climb: () -> ClimbProgress? = { null },
     /** The Strava Live Segment coming up, running or just finished. */
     private val segment: () -> SegmentState? = { null },
+    /** A route with an elevation profile is navigated, so the Pace panel has a plan. */
+    private val paceAvailable: () -> Boolean = { false },
+    /** A climb or segment finished this ride. */
+    private val hasResults: () -> Boolean = { false },
+    /** A tap in the middle of the Fuel panel logs what the rider ate. */
+    private val onFuelTap: () -> Unit = {},
 ) {
     private val _current = MutableStateFlow(Panel.RIDE)
     val current: StateFlow<Panel> = _current
@@ -76,6 +82,15 @@ class PanelController(
 
     private val climbPanel = AutoPanel(Panel.CLIMB)
     private val segmentPanel = AutoPanel(Panel.SEGMENT)
+    private val fuelPanel = AutoPanel(Panel.FUEL)
+
+    /** Until when a fuel reminder shows the Fuel panel. */
+    @Volatile private var fuelUntil = 0L
+
+    /** Shows the Fuel panel for [FUEL_SHOW_MS] after an eat or drink reminder. */
+    fun fuelReminder() {
+        fuelUntil = System.currentTimeMillis() + FUEL_SHOW_MS
+    }
 
     /** Set by the 1 s loop: a climb is ahead on the navigated route; a segment is near, running or just done. */
     @Volatile private var climbAhead = false
@@ -86,6 +101,7 @@ class PanelController(
         coachOpenedAt = 0
         climbPanel.before = null
         segmentPanel.before = null
+        fuelPanel.before = null
     }
 
     fun visiblePanels(s: Settings = settings.value): List<Panel> =
@@ -96,6 +112,8 @@ class PanelController(
                 Panel.COACH -> coach.available
                 Panel.CLIMB -> climbAhead
                 Panel.SEGMENT -> segmentNear
+                Panel.PACE -> paceAvailable()
+                Panel.RESULTS -> hasResults()
                 else -> true
             }
         }.ifEmpty { listOf(Panel.RIDE) }
@@ -123,7 +141,11 @@ class PanelController(
         coachOpenedAt = 0
         climbPanel.before = null
         segmentPanel.before = null
-        if (shown() == Panel.COACH && coach.state.value?.unread == true) {
+        fuelPanel.before = null
+        if (direction == 0 && shown() == Panel.FUEL) {
+            onFuelTap()
+            invalidate()
+        } else if (shown() == Panel.COACH && coach.state.value?.unread == true) {
             coach.acknowledge()
             beforeCoach?.takeIf { it in visiblePanels() }?.let { _current.value = it }
             beforeCoach = null
@@ -180,6 +202,7 @@ class PanelController(
                 // Climbs open 200 m before they start and close at the top; segments for as long as they're near.
                 climbPanel.tick(c != null && c.toStart <= CLIMB_OPEN_BEFORE_M, !isWorkout && s.autoOpenClimb && Panel.CLIMB in enabled)
                 segmentPanel.tick(segmentNear, !isWorkout && s.autoOpenSegment && Panel.SEGMENT in enabled)
+                fuelPanel.tick(System.currentTimeMillis() < fuelUntil, !isWorkout && Panel.FUEL in enabled)
                 if (shown() != Panel.COACH) {
                     coachOpenedAt = 0
                 } else if (isWorkout && coachOpenedAt > 0 && System.currentTimeMillis() - coachOpenedAt >= COACH_RETURN_MS) {
@@ -197,5 +220,6 @@ class PanelController(
     private companion object {
         const val COACH_RETURN_MS = 20_000L
         const val CLIMB_OPEN_BEFORE_M = 200.0
+        const val FUEL_SHOW_MS = 20_000L
     }
 }

@@ -1,15 +1,18 @@
 package io.github.mschache.karoopro
 
+import io.github.mschache.karoopro.calc.FuelItem
 import io.github.mschache.karoopro.numeric.Best20DataType
 import io.github.mschache.karoopro.numeric.CrosswindDataType
 import io.github.mschache.karoopro.numeric.HeadwindDataType
 import io.github.mschache.karoopro.numeric.WPrimeDataType
 import io.github.mschache.karoopro.numeric.WPrimeEmptyDataType
 import io.github.mschache.karoopro.ui.field.ProFieldDataType
+import io.github.mschache.karoopro.ui.field.StripDataType
 import io.github.mschache.karoopro.ui.field.WindDataType
 import io.hammerhead.karooext.extension.DataTypeImpl
 import io.hammerhead.karooext.extension.KarooExtension
 import io.hammerhead.karooext.internal.Emitter
+import io.hammerhead.karooext.models.FitEffect
 import io.hammerhead.karooext.models.MapEffect
 
 /** Entry point the Karoo binds to; started on install and at every boot. */
@@ -25,6 +28,7 @@ class KarooProExtension : KarooExtension(EXTENSION_ID, BuildConfig.VERSION_NAME)
             WPrimeEmptyDataType(g),
             CrosswindDataType(g),
             Best20DataType(g),
+            StripDataType(g),
         )
     }
 
@@ -33,11 +37,19 @@ class KarooProExtension : KarooExtension(EXTENSION_ID, BuildConfig.VERSION_NAME)
         emitter.setCancellable { job.cancel() }
     }
 
+    override fun startFit(emitter: Emitter<FitEffect>) {
+        val job = graph.fit.run(emitter)
+        emitter.setCancellable { job.cancel() }
+    }
+
     override fun onBonusAction(actionId: String) {
         when (actionId) {
             ACTION_NEXT_PANEL -> graph.panels.step(1)
             ACTION_PREVIOUS_PANEL -> graph.panels.step(-1)
             ACTION_CYCLE_METRIC -> graph.cycleBigMetric()
+            ACTION_LOG_GEL -> graph.logFuel(FuelItem.GEL)
+            ACTION_LOG_BAR -> graph.logFuel(FuelItem.BAR)
+            ACTION_LOG_BOTTLE -> graph.logFuel(FuelItem.BOTTLE)
         }
     }
 
@@ -45,5 +57,8 @@ class KarooProExtension : KarooExtension(EXTENSION_ID, BuildConfig.VERSION_NAME)
         const val ACTION_NEXT_PANEL = "next-panel"
         const val ACTION_PREVIOUS_PANEL = "previous-panel"
         const val ACTION_CYCLE_METRIC = "cycle-metric"
+        const val ACTION_LOG_GEL = "log-gel"
+        const val ACTION_LOG_BAR = "log-bar"
+        const val ACTION_LOG_BOTTLE = "log-bottle"
     }
 }

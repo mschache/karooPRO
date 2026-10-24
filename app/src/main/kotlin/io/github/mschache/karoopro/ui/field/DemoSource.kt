@@ -1,12 +1,17 @@
 package io.github.mschache.karoopro.ui.field
 
+import io.github.mschache.karoopro.calc.ClimbResult
 import io.github.mschache.karoopro.calc.ClimbView
 import io.github.mschache.karoopro.calc.Climbs
 import io.github.mschache.karoopro.calc.ElevationProfile
+import io.github.mschache.karoopro.calc.FuelSnapshot
 import io.github.mschache.karoopro.calc.Gearing
+import io.github.mschache.karoopro.calc.PaceSection
 import io.github.mschache.karoopro.calc.ProfilePoint
+import io.github.mschache.karoopro.calc.RideResult
 import io.github.mschache.karoopro.calc.SegmentPhase
 import io.github.mschache.karoopro.calc.SegmentReading
+import io.github.mschache.karoopro.calc.SegmentResult
 import io.github.mschache.karoopro.calc.SegmentState
 import io.github.mschache.karoopro.calc.TargetBand
 import io.github.mschache.karoopro.calc.TargetKind
@@ -16,6 +21,7 @@ import io.github.mschache.karoopro.coach.CoachMessage
 import io.github.mschache.karoopro.coach.PlanStep
 import io.github.mschache.karoopro.data.LapMetric
 import io.github.mschache.karoopro.data.Metric
+import io.github.mschache.karoopro.data.PaceState
 import io.github.mschache.karoopro.data.Profile
 import io.github.mschache.karoopro.data.Settings
 import io.github.mschache.karoopro.data.Source
@@ -105,6 +111,14 @@ class DemoSource(
         Metric.TEMPERATURE to 19.0,
         Metric.W_PRIME to 13_400.0,
         Metric.W_PRIME_EMPTY to 134_000.0,
+        Metric.STAMINA to 72.0,
+        Metric.STAMINA_NOW to 54.0,
+        Metric.EFFORT_LEFT to 2_460_000.0,
+        Metric.CARBS_BURNED to 182.0,
+        Metric.CARBS_EATEN to 125.0,
+        Metric.CARBS_BALANCE to -57.0,
+        Metric.PACE_TARGET to ftp * 0.9,
+        Metric.PACE_AHEAD to 84_000.0,
         Metric.HEADWIND to -2.6,
         Metric.CROSSWIND to 3.1,
         Metric.WIND_SPEED to 4.2,
@@ -182,6 +196,25 @@ class DemoSource(
             distanceLeft = 620.0, elevationLeft = 34.0, totalDistance = 1_500.0,
         ),
     )
+
+    /** A segment just now and the first climb a quarter of an hour ago. */
+    override val results: List<RideResult> = listOf(
+        SegmentResult(seconds = 131, prDelta = -7_000.0, komDelta = 41_000.0, length = 1_500.0, avgPower = ftp * 1.3, endedAt = nowMs - 60_000),
+        ClimbResult(number = 1, total = 3, length = 2_400.0, gain = 168.0, seconds = 612, avgPower = ftp * 1.05, wPrimeLow = 6_200.0, endedAt = nowMs - 900_000),
+    )
+
+    override val pace: PaceState = run {
+        val target = (ftp * 0.9).toInt()
+        val bounds = TargetBand.bounds(TargetKind.POWER, target.toDouble(), null, null)!!
+        PaceState(
+            intensity = 75, target = target, low = bounds.first, high = bounds.second, output = power.toInt(),
+            status = TargetBand.status(power.toInt(), bounds),
+            next = PaceSection(from = 49_450.0, to = 49_700.0, grade = 0.06, power = (ftp * 0.93).toInt(), seconds = 60.0),
+            toNext = 1_200.0, aheadS = 84.0, remainingS = 5_400.0, etaMs = 47_400_000,
+        )
+    }
+
+    override val fuel = FuelSnapshot(burnedG = 182.0, eatenG = 125.0, drankMl = 900.0, movingS = 5_833 + t)
 
     override val workout: WorkoutState
         get() {

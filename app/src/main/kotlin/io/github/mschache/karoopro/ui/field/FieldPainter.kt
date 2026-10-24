@@ -12,6 +12,7 @@ import androidx.core.content.res.ResourcesCompat
 import io.github.mschache.karoopro.R
 import io.github.mschache.karoopro.calc.Fmt
 import io.github.mschache.karoopro.calc.Gearing
+import io.github.mschache.karoopro.calc.TargetBand
 import io.github.mschache.karoopro.calc.TargetStatus
 import io.github.mschache.karoopro.calc.Trend
 import io.github.mschache.karoopro.calc.WindKind
@@ -55,6 +56,32 @@ class FieldPainter(context: Context) {
         m.overlay?.let { o ->
             val r = if (o.full) RectF(pad, pad, w - pad, h - pad) else inner
             overlay(c, m, o, r)
+        }
+        return bmp
+    }
+
+    /**
+     * The PRO Strip: cells side by side, label over value; on a tall slot they wrap into two rows
+     * so the numbers stay large.
+     */
+    fun paintStrip(m: StripModel, width: Int, height: Int): Bitmap {
+        val bmp = Bitmap.createBitmap(max(1, width), max(1, height), Bitmap.Config.RGB_565)
+        val c = Canvas(bmp)
+        val p = m.palette
+        c.drawColor(p.background)
+        val n = m.cells.size.coerceAtLeast(1)
+        // One row unless the cells would get narrower than about 70 % of the slot's height.
+        val rows = if (n > 2 && width / n < height * 0.7f) 2 else 1
+        val cols = (n + rows - 1) / rows
+        val pad = min(width, height) * 0.06f
+        val area = RectF(pad, pad * 0.6f, width - pad, height - pad * 0.6f)
+        val gap = width * 0.02f
+        val rowRects = if (rows == 1) listOf(area) else splitV(area, 1f, 1f, gap = pad * 0.5f)
+        m.cells.forEachIndexed { i, cell ->
+            val rr = rowRects[i / cols]
+            val r = row(rr, cols, gap)[i % cols]
+            stat(c, p, Stat(cell.label, cell.value, cell.unit, cell.color), r)
+            if (i % cols != cols - 1) c.drawLine(r.right + gap / 2, r.top + r.height() * 0.1f, r.right + gap / 2, r.bottom - r.height() * 0.1f, stroke(p.faint, max(1f, width * 0.003f)))
         }
         return bmp
     }
@@ -310,6 +337,9 @@ class FieldPainter(context: Context) {
             is CoachContent -> coach(c, m, content, r)
             is ClimbContent -> climb(c, m, content, r)
             is SegmentContent -> segment(c, m, content, r)
+            is ResultsContent -> results(c, m, content, r)
+            is FuelContent -> fuel(c, m, content, r)
+            is PaceContent -> pace(c, m, content, r)
         }
     }
 
@@ -551,10 +581,24 @@ class FieldPainter(context: Context) {
         TargetStatus.NO_DATA -> "--"
     }
 
+    /**
+     * Green inside the band, fading to blue (push) below it and to red (ease) above it as the gap
+     * grows; the plain status color without a reading.
+     */
+    private fun deviationColor(output: Int?, low: Int?, high: Int?, status: TargetStatus, p: Palette): Int {
+        val d = if (low != null && high != null) TargetBand.deviation(output, low to high) else null
+        return when {
+            d == null -> statusColor(status, p)
+            d < 0 -> ZoneColors.blend(p.push, p.good, (0.35 + 0.65 * -d).toFloat())
+            d > 0 -> ZoneColors.blend(p.bad, p.good, (0.35 + 0.65 * d).toFloat())
+            else -> p.good
+        }
+    }
+
     private fun workout(c: Canvas, m: FieldModel, wc: WorkoutContent, r: RectF) {
         val p = m.palette
         val s = wc.state ?: return message(c, m, "No workout running", r)
-        val color = statusColor(s.status, p)
+        val color = deviationColor(s.output, s.low, s.high, s.status, p)
         val (lineR, targetR, gaugeR, statsR, nextR) = splitV(r, 0.12f, 0.3f, 0.1f, 0.3f, 0.12f, gap = r.height() * 0.025f)
         label(c, "STEP ${s.stepNumber}/${s.stepCount} · ${s.kind.label}", lineR.left, lineR.top + lineR.height() * 0.15f, lineR.height() * 0.62f, p.text)
         label(c, s.stepRemainingS?.let { Fmt.seconds(it.toLong()) + " LEFT" } ?: "OPEN", lineR.right, lineR.top + lineR.height() * 0.15f, lineR.height() * 0.62f, p.text, Paint.Align.RIGHT)
@@ -765,6 +809,68 @@ class FieldPainter(context: Context) {
 
         progress(c, sc.progress, barR, p.accent, p.faint)
         row(statsR, sc.stats.size.coerceAtLeast(1), gap).forEachIndexed { i, cell -> sc.stats.getOrNull(i)?.let { stat(c, p, it, cell) } }
+    }
+
+    /** Newest first: what was ridden, the time large, power and gaps beside it. */
+    private fun results(c: Canvas, m: FieldModel, rc: ResultsContent, r: RectF) {
+        val p = m.palette
+        if (rc.rows.isEmpty()) return message(c, m, "Climbs and segments you\nfinish show up here", r)
+        val n = 4
+        val gap = r.height() * 0.025f
+        val rowH = (r.height() - gap * (n - 1)) / n
+        rc.rows.take(n).forEachIndexed { i, row ->
+            val rr = RectF(r.left, r.top + i * (rowH + gap), r.right, r.top + i * (rowH + gap) + rowH)
+            card(c, rr, p.card, rowH * 0.14f)
+            val inner = RectF(rr.left + rr.width() * 0.03f, rr.top + rowH * 0.1f, rr.right - rr.width() * 0.03f, rr.bottom - rowH * 0.1f)
+            label(c, row.title, inner.left, inner.top, rowH * 0.2f, p.dim, maxWidth = inner.width())
+            val color = when (row.good) {
+                true -> p.good
+                false -> p.bad
+                null -> p.text
+            }
+            val mainW = number(c, row.main, "", RectF(inner.left, inner.top + rowH * 0.3f, inner.left + inner.width() * 0.38f, inner.bottom), color, p.dim, 0.85f)
+            label(c, row.detail, inner.left + mainW + inner.width() * 0.04f, inner.top + rowH * 0.42f, rowH * 0.22f, p.text, maxWidth = inner.width() - mainW - inner.width() * 0.04f)
+        }
+    }
+
+    /** Eaten, burned and the balance; the target bar; when to eat and drink next; what a tap logs. */
+    private fun fuel(c: Canvas, m: FieldModel, fc: FuelContent, r: RectF) {
+        val p = m.palette
+        val rows = splitV(r, 0.1f, 0.3f, 0.06f, 0.2f, 0.12f, 0.1f, gap = r.height() * 0.025f)
+        val (topR, statsR, barR, eatR, drinkR) = rows
+        val hintR = rows[5]
+        label(c, fc.title, topR.left, topR.top + topR.height() * 0.19f, topR.height() * 0.62f, p.text, maxWidth = topR.width())
+        val cells = row(statsR, 3, r.width() * 0.03f)
+        stat(c, p, fc.eaten, cells[0])
+        stat(c, p, fc.burned, cells[1])
+        stat(c, p, fc.balance.copy(accent = if (fc.onTrack) p.good else p.warn), cells[2])
+        progress(c, fc.targetFraction, barR, if (fc.onTrack) p.good else p.warn, p.faint)
+        label(c, fc.eat, eatR.left, eatR.top + eatR.height() * 0.12f, eatR.height() * 0.7f, if (fc.eatDue) p.warn else p.text, maxWidth = eatR.width())
+        label(c, fc.drink, drinkR.left, drinkR.top + drinkR.height() * 0.15f, drinkR.height() * 0.62f, if (fc.drinkDue) p.warn else p.dim, maxWidth = drinkR.width())
+        label(c, fc.hint, hintR.centerX(), hintR.top + hintR.height() * 0.15f, hintR.height() * 0.6f, p.accent, Paint.Align.CENTER, hintR.width())
+    }
+
+    /** Like the Workout panel: this stretch's target with PUSH/EASE, a gauge, the plan's numbers and the next change. */
+    private fun pace(c: Canvas, m: FieldModel, pc: PaceContent, r: RectF) {
+        val p = m.palette
+        pc.message?.let { return message(c, m, it, r) }
+        val color = deviationColor(pc.output, pc.low, pc.high, pc.status, p)
+        val (lineR, targetR, gaugeR, statsR, nextR) = splitV(r, 0.11f, 0.3f, 0.09f, 0.3f, 0.11f, gap = r.height() * 0.025f)
+        label(c, pc.title, lineR.left, lineR.top + lineR.height() * 0.15f, lineR.height() * 0.62f, p.text, maxWidth = lineR.width())
+
+        val radius = targetR.height() * 0.14f
+        card(c, targetR, p.card, radius)
+        c.save()
+        c.clipRect(targetR.left, targetR.top, targetR.left + targetR.width() * 0.02f, targetR.bottom)
+        c.drawRoundRect(targetR, radius, radius, fill(color))
+        c.restore()
+        val statusW = targetR.width() * 0.3f
+        number(c, pc.target, "W", RectF(targetR.left + targetR.width() * 0.05f, targetR.top + targetR.height() * 0.12f, targetR.right - statusW, targetR.bottom - targetR.height() * 0.12f), p.text, p.dim, 0.82f, unitScale = 0.25f)
+        label(c, statusLabel(pc.status), targetR.right - targetR.width() * 0.03f, targetR.centerY() - targetR.height() * 0.13f, targetR.height() * 0.26f, color, Paint.Align.RIGHT, statusW)
+
+        gauge(c, pc.low, pc.high, pc.output, gaugeR, p, color)
+        row(statsR, pc.stats.size.coerceAtLeast(1), r.width() * 0.03f).forEachIndexed { i, cell -> pc.stats.getOrNull(i)?.let { stat(c, p, it, cell) } }
+        label(c, pc.next, nextR.left, nextR.top + nextR.height() * 0.15f, nextR.height() * 0.6f, p.dim, maxWidth = nextR.width())
     }
 
     /** Climb grades as riders know them from climb profiles: green, yellow, orange, red, dark red. */

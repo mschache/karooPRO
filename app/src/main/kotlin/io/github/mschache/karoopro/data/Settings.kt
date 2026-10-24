@@ -1,5 +1,7 @@
 package io.github.mschache.karoopro.data
 
+import io.github.mschache.karoopro.calc.FuelItem
+import io.github.mschache.karoopro.calc.FuelSizes
 import kotlinx.serialization.Serializable
 
 enum class Panel(val title: String) {
@@ -7,9 +9,12 @@ enum class Panel(val title: String) {
     EFFORT("EFFORT"),
     CLIMB("CLIMB"),
     SEGMENT("SEGMENT"),
+    PACE("PACE"),
+    FUEL("FUEL"),
     WEATHER("WEATHER"),
     LAP("LAP"),
     ANALYSIS("ANALYSIS"),
+    RESULTS("RESULTS"),
     WORKOUT("WORKOUT"),
     BIKE("BIKE"),
     COACH("COACH"),
@@ -54,6 +59,24 @@ data class Settings(
     val autoOpenClimb: Boolean = true,
     /** Open the Segment panel when a Strava Live Segment comes up, and go back after its result. */
     val autoOpenSegment: Boolean = true,
+    /** Beep at the smallest and largest cog (Di2/AXS). */
+    val gearLimitBeep: Boolean = true,
+    /** Fueling: carbs and drink to take in per hour, the reminders, and what a tap on the Fuel panel logs. */
+    val carbsPerHour: Int = 60,
+    val drinkMlPerHour: Int = 500,
+    val fuelReminders: Boolean = true,
+    val tapLogs: FuelItem = FuelItem.GEL,
+    val gelCarbs: Int = 25,
+    val barCarbs: Int = 40,
+    val bottleCarbs: Int = 30,
+    val bottleMl: Int = 500,
+    /** Pacing: the target on the flat as % of FTP, and the bike for the speed model. */
+    val paceIntensity: Int = 75,
+    val bikeKg: Int = 9,
+    val cda: Double = 0.32,
+    /** The PRO Strip field: its values, and whether climbs, segments and workouts swap theirs in. */
+    val stripMetrics: List<Metric> = listOf(Metric.W_PRIME, Metric.STAMINA_NOW, Metric.HEADWIND, Metric.CARBS_BALANCE),
+    val stripContext: Boolean = true,
     val bigMetric: BigMetric = BigMetric.POWER,
     /** The big numbers a tap on the hero cycles through, in order. */
     val bigMetrics: List<BigMetric> = listOf(BigMetric.POWER, BigMetric.SPEED, BigMetric.HR),
@@ -92,8 +115,20 @@ data class Settings(
             lapFields = (lapFields + Settings().lapFields).take(4),
             wPrimeJoules = wPrimeJoules.coerceIn(1_000, 100_000),
             criticalPower = criticalPower?.takeIf { it in 50..1000 },
+            carbsPerHour = carbsPerHour.coerceIn(0, 150),
+            drinkMlPerHour = drinkMlPerHour.coerceIn(0, 1500),
+            gelCarbs = gelCarbs.coerceIn(5, 100),
+            barCarbs = barCarbs.coerceIn(5, 150),
+            bottleCarbs = bottleCarbs.coerceIn(0, 150),
+            bottleMl = bottleMl.coerceIn(100, 1500),
+            paceIntensity = paceIntensity.coerceIn(40, 110),
+            bikeKg = bikeKg.coerceIn(3, 40),
+            cda = cda.coerceIn(0.15, 0.6),
+            stripMetrics = stripMetrics.filter { it.selectable }.distinct().take(STRIP_MAX).ifEmpty { Settings().stripMetrics },
         )
     }
+
+    val fuelSizes: FuelSizes get() = FuelSizes(gelCarbs, barCarbs, bottleCarbs, bottleMl)
 
     /** The big numbers the tap cycles through now: power-based ones need a power meter. */
     fun bigCycle(hasPower: Boolean): List<BigMetric> =
@@ -119,5 +154,9 @@ data class Settings(
     fun shownBigMetric(hasPower: Boolean): BigMetric {
         val cycle = bigCycle(hasPower)
         return bigMetric.takeIf { it in cycle } ?: BigMetric.SPEED.takeIf { it in cycle } ?: cycle.first()
+    }
+
+    companion object {
+        const val STRIP_MAX = 6
     }
 }

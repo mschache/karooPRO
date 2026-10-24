@@ -4,11 +4,18 @@ import android.app.Application
 import android.content.Context
 import android.util.Log
 import io.github.mschache.karoopro.alerts.AlertQueue
+import io.github.mschache.karoopro.alerts.Beep
+import io.github.mschache.karoopro.calc.FuelDue
+import io.github.mschache.karoopro.calc.FuelItem
 import io.github.mschache.karoopro.coach.CoachContract
 import io.github.mschache.karoopro.coach.CoachEffort
 import io.github.mschache.karoopro.coach.CoachLink
+import io.github.mschache.karoopro.data.FitWriter
+import io.github.mschache.karoopro.data.GearMonitor
 import io.github.mschache.karoopro.data.Metric
+import io.github.mschache.karoopro.data.PaceTracker
 import io.github.mschache.karoopro.data.PanelController
+import io.github.mschache.karoopro.data.ResultsRecorder
 import io.github.mschache.karoopro.data.RideDataHub
 import io.github.mschache.karoopro.data.RideRecorder
 import io.github.mschache.karoopro.data.RideSnapshotStore
@@ -43,7 +50,18 @@ class AppGraph(context: Context) {
     val coach = CoachLink(app, settings, scope) { effort() }
     val routes = RouteTracker(hub)
     val segments = SegmentMonitor(hub, settings, scope)
-    val panels = PanelController(hub, workout, coach, settings, scope, climb = { routes.climb() }, segment = { segments.state.value })
+    val gears = GearMonitor(hub, settings, alerts, scope)
+    val results = ResultsRecorder(hub, routes, segments, scope)
+    val pace = PaceTracker(hub, routes, settings)
+    val panels = PanelController(
+        hub, workout, coach, settings, scope,
+        climb = { routes.climb() },
+        segment = { segments.state.value },
+        paceAvailable = { routes.current()?.profile?.isNotEmpty() == true },
+        hasResults = { results.results.value.isNotEmpty() },
+        onFuelTap = { logFuel(settings.value.tapLogs) },
+    )
+    val fit = FitWriter(hub, recorder, weather, scope)
     val mapLayers = io.github.mschache.karoopro.map.MapLayers(
         hub, routes, settings, scope, io.github.mschache.karoopro.map.MapLayerMemory(java.io.File(app.filesDir, "map-layers.txt")),
     )
@@ -60,6 +78,12 @@ class AppGraph(context: Context) {
             step = workout.state.value,
             lastStep = workout.lastFinished.value,
         )
+    }
+
+    /** The rider ate or drank [item] (a tap on the Fuel panel or a bonus action). */
+    fun logFuel(item: FuelItem) {
+        recorder.logFuel(item)
+        panels.invalidate()
     }
 
     /** True when the visible ride page has a KarooPRO field on it. */
@@ -87,7 +111,26 @@ class AppGraph(context: Context) {
         workout.start()
         coach.start()
         segments.start()
+        gears.start()
+        results.start()
         panels.start()
+        hub.registerComputed(Metric.PACE_TARGET) { pace.state()?.target?.toDouble() }
+        hub.registerComputed(Metric.PACE_AHEAD) { pace.state()?.aheadS?.times(1000) }
+        scope.launch {
+            recorder.fuelDue.collect { due ->
+                val s = settings.value
+                alerts.beep(Beep.FUEL)
+                if (fieldVisible()) {
+                    panels.fuelReminder()
+                } else {
+                    val (title, detail) = when (due) {
+                        FuelDue.EAT -> "Eat" to "About ${s.gelCarbs} g carbs"
+                        FuelDue.DRINK -> "Drink" to "A few good sips"
+                    }
+                    alerts.popup("karoopro-fuel", title, detail, 8_000)
+                }
+            }
+        }
     }
 }
 

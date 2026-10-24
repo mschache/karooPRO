@@ -13,7 +13,7 @@ import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.launch
 
-enum class Beep { TICK, NEXT_SOON, STEP_START }
+enum class Beep { TICK, NEXT_SOON, STEP_START, GEAR_TOP, GEAR_BOTTOM, FUEL }
 
 /**
  * Sends beeps and pop-ups to the Karoo one after another. Old items are dropped when the queue
@@ -56,6 +56,10 @@ class AlertQueue(private val karoo: KarooSystemService, scope: CoroutineScope) {
                 Beep.TICK -> listOf(Tone(hz(2000), 120 * f))
                 Beep.NEXT_SOON -> listOf(Tone(hz(2500), 160 * f), Tone(null, 100), Tone(hz(2500), 160 * f))
                 Beep.STEP_START -> listOf(Tone(hz(3000), 450 * f))
+                // End of the cassette: two short high blips at the smallest cog, two low ones at the largest.
+                Beep.GEAR_TOP -> listOf(Tone(hz(3300), 70 * f), Tone(null, 50), Tone(hz(3300), 70 * f))
+                Beep.GEAR_BOTTOM -> listOf(Tone(hz(1800), 70 * f), Tone(null, 50), Tone(hz(1800), 70 * f))
+                Beep.FUEL -> listOf(Tone(hz(2200), 120 * f), Tone(null, 80), Tone(hz(2800), 120 * f), Tone(null, 80), Tone(hz(3300), 160 * f))
             }
         }
     }

@@ -106,7 +106,7 @@ tasks.register("generateManifest") {
             "latestVersionCode" to appVersionCode,
             "developer" to "github.com/mschache",
             "description" to "Ride by effort: one full-page field with a big zone-colored number and " +
-                "Ride, Effort, Climb, Segment, Weather, Lap, Analysis, Workout, Bike and Coach panels you flip with a tap.",
+                "Ride, Effort, Climb, Segment, Pace, Fuel, Weather, Lap, Analysis, Results, Workout, Bike and Coach panels you flip with a tap.",
             "releaseNotes" to releaseNotes.get(),
             "screenshotUrls" to listOf(
                 "$releaseBaseUrl/screenshot-1.png",
