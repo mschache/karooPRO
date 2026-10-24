@@ -11,6 +11,7 @@ import io.hammerhead.karooext.models.ZoomPage
  *   [--ei zoomout N | --ei zoomin N]   zoom the visible map page instead of firing the alert
  *   [--es demoroute "lat,lng" | --es demoroute off]   a synthetic 12 km loop with three climbs for the map
  *     layers and the Climb panel; the ride distance moves the rider round it
+ *   [--es demoalong 1850]   put the rider that many meters along the demo route
  */
 class DebugReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
@@ -18,6 +19,10 @@ class DebugReceiver : BroadcastReceiver() {
         intent.getStringExtra("demoroute")?.let { arg ->
             val ll = arg.split(",").mapNotNull { it.trim().toDoubleOrNull() }
             if (ll.size == 2) g.routes.showDemoRoute(ll[0], ll[1]) else g.routes.hideDemoRoute()
+            return
+        }
+        intent.getStringExtra("demoalong")?.toDoubleOrNull()?.let {
+            g.routes.setDemoAlong(it)
             return
         }
         val zoomOut = intent.getIntExtra("zoomout", 0)

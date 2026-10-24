@@ -34,6 +34,9 @@ class RouteTracker(private val hub: RideDataHub) {
     @Volatile private var demoRoute: Route? = null
     @Volatile private var lastAlong: Double? = null
 
+    /** Debug builds: meters added to the ride distance on the demo route ([setDemoAlong]). */
+    @Volatile private var demoShift = 0.0
+
     /** The navigated route (or the demo route), null without one. */
     fun current(): Route? {
         val (polyline, elevation, routeDistance) = when (val nav = hub.navigation.value) {
@@ -56,8 +59,8 @@ class RouteTracker(private val hub: RideDataHub) {
      */
     fun along(r: Route): Double {
         if (r.demo) {
-            val ridden = hub.value(Metric.DISTANCE) ?: 0.0
-            return if (r.geometry.length > 0) ridden % r.geometry.length else 0.0
+            val ridden = (hub.value(Metric.DISTANCE) ?: 0.0) + demoShift
+            return if (r.geometry.length > 0) ridden.mod(r.geometry.length) else 0.0
         }
         val toGo = hub.stream(DataType.Type.DISTANCE_TO_DESTINATION).value.field(DataType.Field.DISTANCE_TO_DESTINATION)
         val total = r.routeDistance ?: r.geometry.length
@@ -97,6 +100,11 @@ class RouteTracker(private val hub: RideDataHub) {
 
     fun hideDemoRoute() {
         demoRoute = null
+    }
+
+    /** Debug builds: put the rider [meters] along the demo route now; riding moves on from there. */
+    fun setDemoAlong(meters: Double) {
+        demoShift = meters - (hub.value(Metric.DISTANCE) ?: 0.0)
     }
 
     companion object {
