@@ -6,6 +6,7 @@ import io.github.mschache.karoopro.calc.Polyline
 import io.github.mschache.karoopro.calc.ProfilePoint
 import io.github.mschache.karoopro.calc.WorkoutState
 import io.github.mschache.karoopro.coach.CoachInfo
+import io.github.mschache.karoopro.coach.PlanStep
 import io.github.mschache.karoopro.data.Metric
 import io.github.mschache.karoopro.data.Profile
 import io.github.mschache.karoopro.data.Settings
@@ -46,6 +47,8 @@ interface RideSource {
     /** Route profile ahead within [meters], distances relative to the rider; empty when not navigating. */
     fun terrainAhead(meters: Double): List<ProfilePoint>
     val workout: WorkoutState?
+    /** The planned step after the running one, when Karoo Coach's relay matched the workout. */
+    val workoutNext: PlanStep?
     val overlay: WorkoutOverlay?
     val weather: WeatherData?
     val weatherStatus: io.github.mschache.karoopro.weather.WeatherStatus
@@ -91,6 +94,7 @@ class LiveSource(private val g: AppGraph) : RideSource {
     }
 
     override val workout get() = g.workout.state.value
+    override val workoutNext get() = g.workout.next.value
     override val overlay get() = g.workout.overlay.value
     override val weather get() = g.weather.weather.value
     override val weatherStatus get() = g.weather.status.value

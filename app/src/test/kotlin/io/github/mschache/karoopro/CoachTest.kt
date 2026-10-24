@@ -10,6 +10,9 @@ import io.github.mschache.karoopro.coach.CoachEffort
 import io.github.mschache.karoopro.coach.CoachInbox
 import io.github.mschache.karoopro.coach.CoachInfo
 import io.github.mschache.karoopro.coach.CoachMessage
+import io.github.mschache.karoopro.coach.CoachPlan
+import io.github.mschache.karoopro.coach.PlanStep
+import io.github.mschache.karoopro.coach.PlanText
 import io.github.mschache.karoopro.coach.CoachStatus
 import io.github.mschache.karoopro.data.Panel
 import io.github.mschache.karoopro.data.PanelSetting
@@ -208,5 +211,60 @@ class TextFitTest {
         assertEquals(10f, fitted.capHeight, 0f)
         assertTrue(TextFit.height(fitted.lines.size, 10f) <= 30f)
         assertTrue(fitted.lines.last().endsWith("…"))
+    }
+}
+
+class CoachPlanTest {
+    private val json = """
+        {"count":12,"index":3,"name":"4x4","extra":true,"steps":[
+          {"index":4,"seconds":240,"low":280,"high":280,"ramp":false,"label":"interval 2/4"},
+          {"index":5,"seconds":180,"low":150,"high":150,"label":"recovery 2/4"},
+          {"index":6,"seconds":600,"low":null,"high":null,"label":"free ride"}]}
+    """.trimIndent()
+
+    @Test fun parsesThePlanColumn() {
+        val info = CoachInfo.from(
+            mapOf(
+                CoachContract.COL_VERSION to 1L, CoachContract.COL_CONFIGURED to 1L,
+                CoachContract.COL_PLAN_JSON to json, CoachContract.COL_PLAN_AT to 50_000L,
+            ),
+        )!!
+        assertEquals(12, info.plan!!.count)
+        assertEquals(3, info.plan!!.steps.size)
+        assertEquals(50_000L, info.planAt)
+        assertEquals(240, info.nextStep(stepIndex = 3, stepCount = 12, now = 60_000L)!!.seconds)
+    }
+
+    @Test fun badOrMissingJsonIsNoPlan() {
+        assertNull(CoachPlan.parse(null))
+        assertNull(CoachPlan.parse(""))
+        assertNull(CoachPlan.parse("{not json"))
+        assertNull(CoachPlan.parse("""{"index":3}"""))
+        val info = CoachInfo.from(mapOf(CoachContract.COL_VERSION to 1L, CoachContract.COL_PLAN_JSON to "oops"))!!
+        assertNull(info.plan)
+        assertNull(info.nextStep(0, 12, 0L))
+    }
+
+    @Test fun nextOnlyWhenTheWorkoutMatchesAndThePlanIsFresh() {
+        val plan = CoachPlan.parse(json)!!
+        assertEquals(4, plan.nextFor(stepIndex = 3, stepCount = 12, ageMs = 0)!!.index)
+        assertEquals(5, plan.nextFor(stepIndex = 4, stepCount = 12, ageMs = 15_000)!!.index) // step moved on before the next check-in
+        assertNull(plan.nextFor(stepIndex = 3, stepCount = 10, ageMs = 0)) // another workout
+        assertNull(plan.nextFor(stepIndex = 3, stepCount = 12, ageMs = CoachPlan.MAX_AGE_MS + 1)) // stale
+        assertNull(plan.nextFor(stepIndex = 6, stepCount = 12, ageMs = 0)) // beyond the steps it carries
+        assertNull(plan.nextFor(stepIndex = 11, stepCount = 12, ageMs = 0)) // last step
+    }
+
+    @Test fun targetsAsText() {
+        assertEquals("4:00 @ 280 W", PlanText.summary(PlanStep(4, 240, 280, 280)))
+        assertEquals("280–300", PlanText.target(PlanStep(4, 240, 280, 300)))
+        assertEquals("200→260", PlanText.target(PlanStep(4, 600, 200, 260, ramp = true)))
+        assertEquals("10:00 OPEN", PlanText.summary(PlanStep(6, 600)))
+    }
+
+    @Test fun workoutPanelShowsThePlannedStep() {
+        val demo = DemoSource(Settings(), Profile.DEFAULT)
+        val content = FieldModelBuilder.build(demo, Panel.WORKOUT, Panel.entries, 255f, 342f, 1.875f, false, true).content
+        assertEquals("4:00 @ 240 W", (content as io.github.mschache.karoopro.ui.field.WorkoutContent).next)
     }
 }

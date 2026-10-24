@@ -8,6 +8,8 @@ import io.github.mschache.karoopro.calc.WorkoutEvent
 import io.github.mschache.karoopro.calc.WorkoutSample
 import io.github.mschache.karoopro.calc.WorkoutState
 import io.github.mschache.karoopro.calc.WorkoutTracker
+import io.github.mschache.karoopro.coach.PlanStep
+import io.github.mschache.karoopro.coach.PlanText
 import io.github.mschache.karoopro.karoo.field
 import io.hammerhead.karooext.models.DataType.Field
 import io.hammerhead.karooext.models.DataType.Type
@@ -21,7 +23,8 @@ import kotlinx.coroutines.launch
 
 /** What the field shows on top of everything while a step change is coming or just happened. */
 sealed class WorkoutOverlay {
-    data class NextStep(val nextStep: Int, val stepCount: Int, val secondsLeft: Int) : WorkoutOverlay()
+    /** [plan] is the planned step, when Karoo Coach's relay knows the workout. */
+    data class NextStep(val nextStep: Int, val stepCount: Int, val secondsLeft: Int, val plan: PlanStep? = null) : WorkoutOverlay()
     data class NewTarget(val state: WorkoutState) : WorkoutOverlay()
 }
 
@@ -36,6 +39,8 @@ class WorkoutMonitor(
     private val scope: CoroutineScope,
     /** True when a KarooPRO field is on the visible ride page. */
     private val fieldVisible: () -> Boolean,
+    /** The planned step after the running one, from Karoo Coach; null when unknown. */
+    private val plannedNext: (WorkoutState, Long) -> PlanStep? = { _, _ -> null },
 ) {
     private val tracker = WorkoutTracker()
     private val _state = MutableStateFlow<WorkoutState?>(null)
@@ -45,6 +50,9 @@ class WorkoutMonitor(
     val lastFinished: StateFlow<StepSummary?> = _lastFinished
     private val _overlay = MutableStateFlow<WorkoutOverlay?>(null)
     val overlay: StateFlow<WorkoutOverlay?> = _overlay
+    private val _next = MutableStateFlow<PlanStep?>(null)
+    /** The next step's duration and target, when Karoo Coach's relay matched the workout to a plan. */
+    val next: StateFlow<PlanStep?> = _next
     private var newTargetUntil = 0L
 
     val active: Boolean get() = _state.value != null
@@ -64,7 +72,9 @@ class WorkoutMonitor(
                     }
                     if (hub.isRecording) {
                         val now = System.currentTimeMillis()
-                        handle(tracker.update(if (stepCount > 0) sample(stepCount) else null, now), now)
+                        val events = tracker.update(if (stepCount > 0) sample(stepCount) else null, now)
+                        _next.value = tracker.state?.takeUnless { it.isLastStep }?.let { plannedNext(it, now) }
+                        handle(events, now)
                         _state.value = tracker.state
                         _lastFinished.value = tracker.lastFinished
                         _overlay.value = overlayFor(tracker.state, now)
@@ -78,6 +88,7 @@ class WorkoutMonitor(
                     _state.value = null
                     _lastFinished.value = null
                     _overlay.value = null
+                    _next.value = null
                 }
                 delay(TICK_MS)
             }
@@ -124,7 +135,8 @@ class WorkoutMonitor(
                 if (e.secondsLeft >= 10) {
                     if (s.alertBeep) alerts.beep(Beep.NEXT_SOON)
                     if (popupWanted) {
-                        alerts.popup("karoopro-next", "Next: step ${e.nextStepNumber}/${e.stepCount}", "in ${e.secondsLeft} s", 9_000)
+                        val title = _next.value?.let { "Next: ${PlanText.summary(it)}" } ?: "Next: step ${e.nextStepNumber}/${e.stepCount}"
+                        alerts.popup("karoopro-next", title, "in ${e.secondsLeft} s", 9_000)
                     }
                 } else if (s.countdownBeeps) {
                     alerts.beep(Beep.TICK)
@@ -148,7 +160,7 @@ class WorkoutMonitor(
         val left = state.stepRemainingS
         return when {
             left != null && left in 1..10 && !state.isLastStep ->
-                WorkoutOverlay.NextStep(state.stepNumber + 1, state.stepCount, left)
+                WorkoutOverlay.NextStep(state.stepNumber + 1, state.stepCount, left, _next.value)
             now < newTargetUntil -> WorkoutOverlay.NewTarget(state)
             else -> null
         }

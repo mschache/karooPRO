@@ -13,7 +13,7 @@ Below that is a panel you flip with a tap on its left or right side.
 | **Weather** | Head, tail or crosswind for your direction of travel, gusts, rain chance, temperature, and the next 6 hours (Open-Meteo) |
 | **Lap** | Four lap fields with ▲/▼ against the previous lap |
 | **Analysis** | Best 5 s / 1 min / 5 min / 20 min power, time in zones, NP, TSS, IF, climbing, work |
-| **Workout** | Opens by itself during a structured workout: step, time left, target with PUSH / EASE / IN RANGE, step average, time in target |
+| **Workout** | Opens by itself during a structured workout: step, time left, target with PUSH / EASE / IN RANGE, step average, time in target, and the next step's target when Karoo Coach knows your plan |
 | **Bike** | Opens by itself when Di2 or AXS connects: gears, drivetrain with cross-chain warning, batteries, L/R balance, shifts, ratio |
 | **Coach** | Appears when the [Karoo Coach](#karoo-coach) extension is installed and set up: your coach's latest message in big type, how old it is, and whether check-ins work. Opens by itself on a new message; tap it to confirm |
 
@@ -114,7 +114,7 @@ Open the **KarooPRO** app on the Karoo to:
 
 ## Good to know
 
-- **Next workout step.** The Karoo shares only the running workout step. The countdown to the next step is exact, but its target appears when the step starts.
+- **Next workout step.** The Karoo shares only the running workout step. The countdown to the next step is exact, but its target normally appears when the step starts. With [Karoo Coach](#karoo-coach) set up, and a workout from your intervals.icu plan or pushed through the coach, the Workout panel and the 10-second alert show the next step's duration and power target ahead of time (for example "NEXT 4:00 @ 280 W").
 - **Weather.** Weather comes from [Open-Meteo](https://open-meteo.com). It needs WiFi or the Companion app, and is fetched only while the Weather panel, a wind tile or card, or a wind field is in use: every 15 minutes, or after 3 km.
 - **Battery levels.** Di2/AXS and power-meter batteries are shown as the levels the Karoo reports (new, good, OK, low, critical), not percentages.
 - **Rendering.** The field is drawn as a single image about once per second, the Karoo's limit for extension views. When its page is not on screen, it stops drawing.

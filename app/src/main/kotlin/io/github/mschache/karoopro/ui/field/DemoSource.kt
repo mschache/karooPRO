@@ -7,6 +7,7 @@ import io.github.mschache.karoopro.calc.TargetKind
 import io.github.mschache.karoopro.calc.WorkoutState
 import io.github.mschache.karoopro.coach.CoachInfo
 import io.github.mschache.karoopro.coach.CoachMessage
+import io.github.mschache.karoopro.coach.PlanStep
 import io.github.mschache.karoopro.data.LapMetric
 import io.github.mschache.karoopro.data.Metric
 import io.github.mschache.karoopro.data.Profile
@@ -177,9 +178,11 @@ class DemoSource(
             )
         }
 
+    override val workoutNext = PlanStep(index = 2, seconds = 240, low = (ftp * 1.2).toInt(), high = (ftp * 1.2).toInt(), label = "interval 2/4")
+
     override val overlay: WorkoutOverlay?
         get() = when (overlayMode) {
-            1 -> WorkoutOverlay.NextStep(3, 8, 5)
+            1 -> WorkoutOverlay.NextStep(3, 8, 5, workoutNext)
             2 -> WorkoutOverlay.NewTarget(workout.copy(stepNumber = 3))
             else -> null
         }

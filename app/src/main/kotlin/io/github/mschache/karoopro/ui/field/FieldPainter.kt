@@ -576,12 +576,14 @@ class FieldPainter(context: Context) {
         label(c, "PROGRESS", cells[2].left, cells[2].top, cells[2].height() * 0.2f, p.dim)
         progress(c, s.progress, RectF(cells[2].left, cells[2].centerY(), cells[2].right, cells[2].centerY() + cells[2].height() * 0.18f), p.text, p.faint)
 
+        val whatNext = wc.next ?: "STEP ${s.stepNumber + 1}/${s.stepCount}"
         val next = when {
             s.isLastStep -> "LAST STEP" + (s.totalRemainingS?.let { " · ${Fmt.seconds(it.toLong())} TO GO" } ?: "")
-            s.stepRemainingS != null -> "NEXT  STEP ${s.stepNumber + 1}/${s.stepCount} IN ${Fmt.seconds(s.stepRemainingS.toLong())}"
-            else -> "NEXT  STEP ${s.stepNumber + 1}/${s.stepCount} AFTER LAP"
+            s.stepRemainingS != null -> "NEXT  $whatNext · IN ${Fmt.seconds(s.stepRemainingS.toLong())}"
+            else -> "NEXT  $whatNext · AFTER LAP"
         }
-        label(c, next, nextR.left, nextR.top + nextR.height() * 0.15f, nextR.height() * 0.6f, p.dim, maxWidth = nextR.width())
+        // A planned target is worth reading, so it isn't dimmed.
+        label(c, next, nextR.left, nextR.top + nextR.height() * 0.15f, nextR.height() * 0.6f, if (wc.next != null && !s.isLastStep) p.text else p.dim, maxWidth = nextR.width())
     }
 
     private fun gauge(c: Canvas, low: Int?, high: Int?, value: Int?, r: RectF, p: Palette, statusColor: Int) {
@@ -757,8 +759,15 @@ class FieldPainter(context: Context) {
             is OverlayModel.NextStep -> {
                 val (titleR, subR, numR, barR) = splitV(inner, 0.16f, 0.1f, 0.6f, 0.06f, gap = inner.height() * 0.02f)
                 label(c, "NEXT · STEP ${o.nextStep}/${o.stepCount}", titleR.centerX(), titleR.top, titleR.height() * 0.75f, p.text, Paint.Align.CENTER, titleR.width())
-                label(c, "STARTS IN", subR.centerX(), subR.top, subR.height() * 0.7f, p.dim, Paint.Align.CENTER)
-                number(c, "${o.secondsLeft}", "", numR, p.accent, p.dim, 0.9f, Paint.Align.CENTER)
+                if (o.target != null) {
+                    // The planned target large, the countdown beside the duration.
+                    val sub = listOfNotNull(o.duration, "IN ${o.secondsLeft} S").joinToString(" · ")
+                    label(c, sub, subR.centerX(), subR.top, subR.height() * 0.7f, p.dim, Paint.Align.CENTER, subR.width())
+                    number(c, o.target, "W", numR, p.accent, p.dim, 0.85f, Paint.Align.CENTER, unitScale = 0.25f)
+                } else {
+                    label(c, "STARTS IN", subR.centerX(), subR.top, subR.height() * 0.7f, p.dim, Paint.Align.CENTER)
+                    number(c, "${o.secondsLeft}", "", numR, p.accent, p.dim, 0.9f, Paint.Align.CENTER)
+                }
                 progress(c, o.secondsLeft / 10f, barR, p.accent, p.faint)
             }
             is OverlayModel.NewTarget -> {

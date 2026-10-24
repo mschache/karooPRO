@@ -127,7 +127,8 @@ data class ZoneBar(val label: String, val seconds: Long, val fraction: Float, va
 
 data class AnalysisContent(val best: List<Stat>, val zoneTitle: String, val zones: List<ZoneBar>, val totals: List<Stat>) : PanelContent
 
-data class WorkoutContent(val state: WorkoutState?, val unit: String) : PanelContent
+/** [next] is the planned next step, e.g. "4:00 @ 280 W", when Karoo Coach's relay knows the workout. */
+data class WorkoutContent(val state: WorkoutState?, val unit: String, val next: String? = null) : PanelContent
 
 data class BikeContent(
     val gearing: Gearing?,
@@ -157,6 +158,14 @@ data class CoachContent(
 sealed interface OverlayModel {
     val full: Boolean
 
-    data class NextStep(val nextStep: Int, val stepCount: Int, val secondsLeft: Int, override val full: Boolean) : OverlayModel
+    /** [target] (watts) and [duration] come from the plan, when known. */
+    data class NextStep(
+        val nextStep: Int,
+        val stepCount: Int,
+        val secondsLeft: Int,
+        override val full: Boolean,
+        val target: String? = null,
+        val duration: String? = null,
+    ) : OverlayModel
     data class NewTarget(val title: String, val target: String, val unit: String, override val full: Boolean) : OverlayModel
 }

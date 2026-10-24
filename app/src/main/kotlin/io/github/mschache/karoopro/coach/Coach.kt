@@ -1,13 +1,78 @@
 package io.github.mschache.karoopro.coach
 
+import io.github.mschache.karoopro.calc.Fmt
 import io.github.mschache.karoopro.calc.StepSummary
 import io.github.mschache.karoopro.calc.TargetKind
 import io.github.mschache.karoopro.calc.WindComponents
 import io.github.mschache.karoopro.calc.WorkoutState
+import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
 import kotlin.math.abs
 
 /** A message from Karoo Coach; [receivedAt] is when the Karoo got it (epoch ms). */
 data class CoachMessage(val id: String, val title: String, val text: String, val receivedAt: Long)
+
+/**
+ * One upcoming step of a planned workout. [index] is the Karoo's 0-based step; [low]/[high] are
+ * watts (equal for a steady step, from → to for a [ramp]), null for a step without a power target.
+ */
+@Serializable
+data class PlanStep(
+    val index: Int,
+    val seconds: Int,
+    val low: Int? = null,
+    val high: Int? = null,
+    val ramp: Boolean = false,
+    val label: String? = null,
+)
+
+/**
+ * The plan Karoo Coach's relay matched to the running workout (from intervals.icu or a workout
+ * pushed through it): [count] steps, matched while step [index] ran, with up to three [steps] after it.
+ */
+@Serializable
+data class CoachPlan(
+    val count: Int,
+    val index: Int,
+    val name: String? = null,
+    val steps: List<PlanStep> = emptyList(),
+) {
+    /**
+     * The step after the running step [stepIndex], when this plan has the running workout's
+     * [stepCount] and is at most [MAX_AGE_MS] old ([ageMs]); null otherwise, so a stale or
+     * mismatched plan never shows.
+     */
+    fun nextFor(stepIndex: Int, stepCount: Int, ageMs: Long): PlanStep? {
+        if (count != stepCount || ageMs > MAX_AGE_MS) return null
+        return steps.firstOrNull { it.index == stepIndex + 1 }
+    }
+
+    companion object {
+        /** Check-ins run every 10–20 s during a workout, so a plan older than this has lost its match. */
+        const val MAX_AGE_MS = 120_000L
+        private val json = Json { ignoreUnknownKeys = true }
+
+        fun parse(text: String?): CoachPlan? =
+            text?.takeIf { it.isNotBlank() }?.let { runCatching { json.decodeFromString(serializer(), it) }.getOrNull() }
+    }
+}
+
+object PlanText {
+    /** "280", "280–300" or "200→260" in watts; null for a step without a power target. */
+    fun target(step: PlanStep): String? {
+        val low = step.low ?: return null
+        val high = step.high ?: low
+        return when {
+            step.ramp && high != low -> "$low→$high"
+            high != low -> "$low–$high"
+            else -> "$low"
+        }
+    }
+
+    /** "4:00 @ 280 W", or "4:00 OPEN" without a power target. */
+    fun summary(step: PlanStep): String =
+        Fmt.seconds(step.seconds.toLong()) + (target(step)?.let { " @ $it W" } ?: " OPEN")
+}
 
 /** Karoo Coach's shared state, read from its content provider (see [CoachContract]). */
 data class CoachInfo(
@@ -19,8 +84,17 @@ data class CoachInfo(
     val lastError: String?,
     val message: CoachMessage?,
     val acknowledged: Boolean,
+    /** The workout plan from the last check-in, received at [planAt] (epoch ms). */
+    val plan: CoachPlan? = null,
+    val planAt: Long? = null,
 ) {
     val unread: Boolean get() = message != null && !acknowledged
+
+    /** The planned step after the running step [stepIndex] (0-based), when the plan matches and is fresh. */
+    fun nextStep(stepIndex: Int, stepCount: Int, now: Long): PlanStep? {
+        val at = planAt ?: return null
+        return plan?.nextFor(stepIndex, stepCount, now - at)
+    }
 
     companion object {
         /** Parses one provider row given as column name to value; null when the row isn't usable. */
@@ -45,6 +119,8 @@ data class CoachInfo(
                     null
                 },
                 acknowledged = row.flag(CoachContract.COL_ACKNOWLEDGED),
+                plan = CoachPlan.parse(row[CoachContract.COL_PLAN_JSON] as? String),
+                planAt = row.long(CoachContract.COL_PLAN_AT),
             )
         }
 
@@ -171,6 +247,9 @@ object CoachContract {
     const val COL_MESSAGE_TEXT = "message_text"
     const val COL_MESSAGE_AT = "message_at"
     const val COL_ACKNOWLEDGED = "acknowledged"
+    /** The relay's plan for the running workout as JSON ([CoachPlan]), and when it arrived (epoch ms). */
+    const val COL_PLAN_JSON = "plan_json"
+    const val COL_PLAN_AT = "plan_at"
 
     const val METHOD_ACK = "ack"
     const val METHOD_HOST = "host"

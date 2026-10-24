@@ -10,6 +10,7 @@ import io.github.mschache.karoopro.calc.ZoneMath
 import io.github.mschache.karoopro.calc.bucketAverages
 import io.github.mschache.karoopro.coach.CoachStatus
 import io.github.mschache.karoopro.coach.CoachText
+import io.github.mschache.karoopro.coach.PlanText
 import io.github.mschache.karoopro.data.AlertStyle
 import io.github.mschache.karoopro.data.BigMetric
 import io.github.mschache.karoopro.data.ColorMode
@@ -297,7 +298,7 @@ object FieldModelBuilder {
                 )
             }
 
-            Panel.WORKOUT -> WorkoutContent(src.workout, src.workout?.kind?.unit.orEmpty())
+            Panel.WORKOUT -> WorkoutContent(src.workout, src.workout?.kind?.unit.orEmpty(), src.workoutNext?.let { PlanText.summary(it) })
 
             Panel.BIKE -> {
                 val g = src.gearing
@@ -401,7 +402,11 @@ object FieldModelBuilder {
         val full = s.alertStyle == AlertStyle.FULL
         return when (val o = src.overlay) {
             null -> null
-            is WorkoutOverlay.NextStep -> OverlayModel.NextStep(o.nextStep, o.stepCount, o.secondsLeft, full)
+            is WorkoutOverlay.NextStep -> OverlayModel.NextStep(
+                o.nextStep, o.stepCount, o.secondsLeft, full,
+                target = o.plan?.let { PlanText.target(it) },
+                duration = o.plan?.let { Fmt.seconds(it.seconds.toLong()) },
+            )
             is WorkoutOverlay.NewTarget -> {
                 val st = o.state
                 OverlayModel.NewTarget(

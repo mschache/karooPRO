@@ -35,7 +35,9 @@ class AppGraph(context: Context) {
     val alerts = AlertQueue(karoo, scope)
     val recorder = RideRecorder(hub, settings, RideSnapshotStore(app), scope)
     val weather = WeatherRepository(hub, settings, scope)
-    val workout = WorkoutMonitor(hub, settings, alerts, scope) { fieldVisible() }
+    val workout = WorkoutMonitor(hub, settings, alerts, scope, fieldVisible = { fieldVisible() }) { state, now ->
+        coach.state.value?.nextStep(state.stepNumber - 1, state.stepCount, now)
+    }
     val coach = CoachLink(app, settings, scope) { effort() }
     val panels = PanelController(hub, workout, coach, settings, scope)
     val mapLayers = io.github.mschache.karoopro.map.MapLayers(
