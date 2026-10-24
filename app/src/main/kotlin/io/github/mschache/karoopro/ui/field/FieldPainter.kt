@@ -228,7 +228,11 @@ class FieldPainter(context: Context) {
         }
         for (option in pills) {
             val selected = option == h.big
-            val bg = if (selected) (h.zoneColor ?: p.accent) else ZoneColors.blend(p.faint, h.background, 0.85f)
+            val bg = when {
+                !selected -> ZoneColors.blend(p.faint, h.background, 0.85f)
+                h.filled -> h.textColor
+                else -> h.zoneColor ?: p.accent
+            }
             val fg = if (selected) ZoneColors.onColor(bg) else h.textColor
             val capH = pillH * 0.36f
             val tw = textPaint(fg, capH / capRatio).measureText(option.pill)
@@ -256,10 +260,19 @@ class FieldPainter(context: Context) {
         number(c, h.value, h.unit, numR, h.numberColor, h.dimColor, inkFraction = 0.86f, unitScale = 0.2f)
         val zr = RectF(bigR.right - zoneW, bigR.top, bigR.right, bigR.bottom)
         val badge = RectF(zr.left, zr.top + zr.height() * 0.04f, zr.right, zr.top + zr.height() * 0.3f)
-        val badgeBg = h.zoneColor ?: p.faint
-        c.drawRoundRect(badge, badge.height() * 0.22f, badge.height() * 0.22f, fill(badgeBg))
+        val badgeBg = if (h.filled) h.textColor else h.zoneColor ?: p.faint
+        val corner = badge.height() * 0.22f
+        c.drawRoundRect(badge, corner, corner, fill(badgeBg))
         number(c, h.zone?.let { "Z$it" } ?: "Z-", "", RectF(badge.left, badge.top, badge.right, badge.bottom), ZoneColors.onColor(badgeBg), 0, 0.56f, Paint.Align.CENTER)
-        zoneLadder(c, h.zoneColors, h.zone, RectF(zr.left + zoneW * 0.12f, badge.bottom + zr.height() * 0.06f, zr.right - zoneW * 0.12f, zr.bottom - zr.height() * 0.02f), h.background, p.faint)
+        // On a filled hero the current zone's bar is the background color: the ladder gets a card behind it.
+        val ladder = if (h.filled) {
+            val plate = RectF(zr.left, badge.bottom + zr.height() * 0.04f, zr.right, zr.bottom)
+            card(c, plate, p.card, corner)
+            RectF(plate.left + zoneW * 0.2f, plate.top + zoneW * 0.14f, plate.right - zoneW * 0.2f, plate.bottom - zoneW * 0.14f)
+        } else {
+            RectF(zr.left + zoneW * 0.12f, badge.bottom + zr.height() * 0.06f, zr.right - zoneW * 0.12f, zr.bottom - zr.height() * 0.02f)
+        }
+        zoneLadder(c, h.zoneColors, h.zone, ladder, if (h.filled) p.card else h.background, p.faint)
 
         // Cards
         row(cardsR, h.cards.size, pad).forEachIndexed { i, cr -> heroCard(c, m, h.cards[i], cr) }
@@ -270,11 +283,14 @@ class FieldPainter(context: Context) {
         val radius = r.height() * 0.14f
         card(c, r, p.card, radius)
         val bar = r.width() * 0.025f
+        // On a filled hero the accent can be the background color: keep a rim of card around the bar.
+        val rim = if (m.hero.filled) bar * 0.7f else 0f
+        val edge = RectF(r.left + rim, r.top + rim, r.right - rim, r.bottom - rim)
         c.save()
-        c.clipRect(r.left, r.top, r.left + bar, r.bottom)
-        c.drawRoundRect(r, radius, radius, fill(card.accent ?: p.faint))
+        c.clipRect(edge.left, edge.top, edge.left + bar, edge.bottom)
+        c.drawRoundRect(edge, radius - rim, radius - rim, fill(card.accent ?: p.faint))
         c.restore()
-        val inner = RectF(r.left + bar * 2.2f, r.top + r.height() * 0.12f, r.right - r.width() * 0.04f, r.bottom - r.height() * 0.1f)
+        val inner = RectF(edge.left + bar * 2.2f, r.top + r.height() * 0.12f, r.right - r.width() * 0.04f, r.bottom - r.height() * 0.1f)
         label(c, card.label, inner.left, inner.top, r.height() * 0.13f, p.dim)
         card.avg?.let { label(c, "AVG $it", inner.right, inner.top, r.height() * 0.13f, p.dim, Paint.Align.RIGHT) }
         number(c, card.value, card.unit, RectF(inner.left, inner.top + r.height() * 0.24f, inner.right, inner.bottom), p.text, p.dim, 0.86f, unitScale = 0.3f)

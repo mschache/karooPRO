@@ -82,7 +82,10 @@ data class HeroModel(
     val dimColor: Int,
     val stats: List<Stat>,
     val cards: List<CardModel>,
-)
+) {
+    /** The hero is filled with the zone color, so anything drawn in that color needs its own backing. */
+    val filled: Boolean get() = zoneColor != null && background == zoneColor
+}
 
 data class Stat(val label: String, val value: String, val unit: String = "", val accent: Int? = null)
 

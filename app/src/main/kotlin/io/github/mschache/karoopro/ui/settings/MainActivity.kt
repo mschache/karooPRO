@@ -79,6 +79,15 @@ class MainActivity : ComponentActivity() {
                     )
                     java.io.File(dir, "hero-${big.name.lowercase()}.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                 }
+                // The hero in every color mode, with the big number and the cards in the same zone color.
+                for (mode in io.github.mschache.karoopro.data.ColorMode.entries) {
+                    val s = graph.settings.value.copy(colorMode = mode, bigMetric = io.github.mschache.karoopro.data.BigMetric.SPEED, heroCards = null)
+                    val model = io.github.mschache.karoopro.ui.field.FieldModelBuilder.build(
+                        io.github.mschache.karoopro.ui.field.DemoSource(s, graph.hub.profile.value), Panel.RIDE, Panel.entries,
+                        w / density, h / density, density, interactive = false, systemDark = true,
+                    )
+                    java.io.File(dir, "hero-mode-${mode.name.lowercase()}.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                }
                 // The PRO Strip in a full-width and a half-width slot.
                 val strip = io.github.mschache.karoopro.ui.field.FieldModelBuilder.strip(
                     io.github.mschache.karoopro.ui.field.DemoSource(graph.settings.value, graph.hub.profile.value), systemDark = true,
