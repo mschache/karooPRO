@@ -53,7 +53,7 @@ data class Settings(
     val panels: List<PanelSetting> = Panel.entries.map { PanelSetting(it) },
     val autoOpenWorkout: Boolean = true,
     val autoOpenBike: Boolean = true,
-    /** Open the Coach panel when a Karoo Coach message arrives. */
+    /** Open the Coach panel when a KarooCoach message arrives. */
     val autoOpenCoach: Boolean = true,
     /** Open the Climb panel just before a climb on the navigated route, and go back at the top. */
     val autoOpenClimb: Boolean = true,
@@ -90,7 +90,7 @@ data class Settings(
     val criticalPower: Int? = null,
     val wPrimeJoules: Int = 20_000,
     val alertStyle: AlertStyle = AlertStyle.WINDOW,
-    /** Also show a Karoo pop-up so the next step is announced on pages without KarooPRO. */
+    /** Also show a Karoo pop-up so the next step is announced on pages without KarooPro. */
     val systemAlert: Boolean = true,
     val alertBeep: Boolean = true,
     val countdownBeeps: Boolean = true,

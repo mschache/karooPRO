@@ -23,7 +23,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * PRO Strip: a slim row of KarooPRO values for map and data pages, the ones the Karoo doesn't have
+ * PRO Strip: a slim row of KarooPro values for map and data pages, the ones the Karoo doesn't have
  * (W', stamina, wind, carbs), with the segment gap, workout target and distance to the top swapped
  * in while they matter.
  */

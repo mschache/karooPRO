@@ -5,7 +5,7 @@ import io.github.mschache.karoopro.calc.UnitPrefs
 import io.hammerhead.karooext.models.DataType.Field
 import io.hammerhead.karooext.models.DataType.Type
 
-/** Where a metric comes from: a Karoo data type field, or something KarooPRO computes itself. */
+/** Where a metric comes from: a Karoo data type field, or something KarooPro computes itself. */
 sealed class Source {
     /** [pair] is a second field averaged with [field], for left/right pedal values. */
     data class Karoo(val typeId: String, val field: String?, val pair: String? = null) : Source()

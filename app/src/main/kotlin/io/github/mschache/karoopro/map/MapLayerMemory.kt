@@ -3,7 +3,7 @@ package io.github.mschache.karoopro.map
 import java.io.File
 
 /**
- * Remembers which map lines and symbols KarooPRO has drawn, in a small file that survives process
+ * Remembers which map lines and symbols KarooPro has drawn, in a small file that survives process
  * restarts and app updates. The Karoo keeps an extension's map items after its process dies, so a new
  * map layer first removes these leftovers.
  */

@@ -115,6 +115,14 @@ class MainActivity : ComponentActivity() {
                     )
                     java.io.File(dir, "${shot.name}.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                 }
+                // The app icon and the field-list icon, as Android draws them.
+                for ((name, res, size) in listOf(Triple("icon-launcher", io.github.mschache.karoopro.R.mipmap.ic_launcher, 432), Triple("icon-field", io.github.mschache.karoopro.R.drawable.ic_karoopro, 96))) {
+                    val d = androidx.core.content.ContextCompat.getDrawable(this@MainActivity, res) ?: continue
+                    val bmp = android.graphics.Bitmap.createBitmap(size, size, android.graphics.Bitmap.Config.ARGB_8888)
+                    d.setBounds(0, 0, size, size)
+                    d.draw(android.graphics.Canvas(bmp))
+                    java.io.File(dir, "$name.png").outputStream().use { bmp.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                }
                 android.util.Log.i("KarooPRO", "exportshots written to $dir")
             }
         }

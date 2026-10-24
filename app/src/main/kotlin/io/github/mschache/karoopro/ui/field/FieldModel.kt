@@ -205,7 +205,7 @@ data class ZoneBar(val label: String, val seconds: Long, val fraction: Float, va
 
 data class AnalysisContent(val best: List<Stat>, val zoneTitle: String, val zones: List<ZoneBar>, val totals: List<Stat>) : PanelContent
 
-/** [next] is the planned next step, e.g. "4:00 @ 280 W", when Karoo Coach's relay knows the workout. */
+/** [next] is the planned next step, e.g. "4:00 @ 280 W", when KarooCoach's relay knows the workout. */
 data class WorkoutContent(val state: WorkoutState?, val unit: String, val next: String? = null) : PanelContent
 
 data class BikeContent(

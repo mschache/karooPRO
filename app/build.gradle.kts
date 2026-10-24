@@ -98,7 +98,7 @@ tasks.register("generateManifest") {
     outputs.file(out)
     doLast {
         val manifest = mapOf(
-            "label" to "KarooPRO",
+            "label" to "KarooPro",
             "packageName" to "io.github.mschache.karoopro",
             "iconUrl" to "$releaseBaseUrl/karoopro.png",
             "latestApkUrl" to "$releaseBaseUrl/app-release.apk",

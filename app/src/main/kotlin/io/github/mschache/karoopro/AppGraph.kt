@@ -66,7 +66,7 @@ class AppGraph(context: Context) {
         hub, routes, settings, scope, io.github.mschache.karoopro.map.MapLayerMemory(java.io.File(app.filesDir, "map-layers.txt")),
     )
 
-    /** What Karoo Coach's check-ins carry from KarooPRO. */
+    /** What KarooCoach's check-ins carry from KarooPro. */
     private fun effort(): Map<String, Double> {
         val s = settings.value
         return CoachEffort.values(
@@ -86,7 +86,7 @@ class AppGraph(context: Context) {
         panels.invalidate()
     }
 
-    /** True when the visible ride page has a KarooPRO field on it. */
+    /** True when the visible ride page has a KarooPro field on it. */
     fun fieldVisible(): Boolean =
         hub.activePage.value?.elements?.any { it.dataTypeId.startsWith(DataType.dataTypeId(EXTENSION_ID, "")) } == true
 

@@ -24,7 +24,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withTimeoutOrNull
 
 /**
- * The all-in-one KarooPRO field. Place it alone on a ride page: big zone-colored number on top,
+ * The all-in-one KarooPro field. Place it alone on a ride page: big zone-colored number on top,
  * a panel below that flips with a tap on its left or right side.
  */
 class ProFieldDataType(private val graph: AppGraph) : DataTypeImpl(EXTENSION_ID, TYPE_ID) {

@@ -25,9 +25,9 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 
 /**
- * Talks to the Karoo Coach extension, when it is installed: reads its latest message and status,
- * follows changes with a ContentObserver, sends acks, tells it whether the KarooPRO field
- * shows coach messages (so Karoo Coach checks in for KarooPRO profiles and skips its pop-up), and
+ * Talks to the KarooCoach extension, when it is installed: reads its latest message and status,
+ * follows changes with a ContentObserver, sends acks, tells it whether the KarooPro field
+ * shows coach messages (so KarooCoach checks in for KarooPro profiles and skips its pop-up), and
  * sends it the [effort] values for its check-ins while they run.
  */
 class CoachLink(
@@ -41,10 +41,10 @@ class CoachLink(
     private val fieldId = DataType.dataTypeId(EXTENSION_ID, ProFieldDataType.TYPE_ID)
     private val _state = MutableStateFlow<CoachInfo?>(null)
 
-    /** Null while Karoo Coach is missing or can't be read. */
+    /** Null while KarooCoach is missing or can't be read. */
     val state: StateFlow<CoachInfo?> = _state
 
-    /** Karoo Coach is installed and set up with a relay, so the Coach panel is offered. */
+    /** KarooCoach is installed and set up with a relay, so the Coach panel is offered. */
     val available: Boolean get() = _state.value?.configured == true
 
     private var observing = false
@@ -93,7 +93,7 @@ class CoachLink(
             app.contentResolver.registerContentObserver(uri, false, observer)
             true
         } catch (e: SecurityException) {
-            false // Karoo Coach is not installed (or too old to share its state).
+            false // KarooCoach is not installed (or too old to share its state).
         }
     }
 
@@ -105,11 +105,11 @@ class CoachLink(
                 null
             }
         }
-        if (info != _state.value) Log.i(TAG, "Karoo Coach: ${info?.let { "configured=${it.configured} active=${it.active} message=${it.message?.id}" } ?: "unavailable"}")
+        if (info != _state.value) Log.i(TAG, "KarooCoach: ${info?.let { "configured=${it.configured} active=${it.active} message=${it.message?.id}" } ?: "unavailable"}")
         _state.value = info
     }
 
-    /** Karoo Coach ignores repeats, so this is sent on every refresh and survives its data being reset. */
+    /** KarooCoach ignores repeats, so this is sent on every refresh and survives its data being reset. */
     private suspend fun announce(s: Settings) {
         if (_state.value == null) return
         val (shows, opens) = hostFlags(s)
@@ -128,7 +128,7 @@ class CoachLink(
         try {
             app.contentResolver.call(uri, method, arg, extras)
         } catch (e: Exception) {
-            Log.w(TAG, "Karoo Coach $method failed: ${e.message}")
+            Log.w(TAG, "KarooCoach $method failed: ${e.message}")
             null
         }
     }
@@ -145,7 +145,7 @@ class CoachLink(
     private companion object {
         const val TAG = "KarooPRO"
         const val REFRESH_MS = 30_000L
-        /** Karoo Coach drops values older than 20 s. */
+        /** KarooCoach drops values older than 20 s. */
         const val EFFORT_MS = 5_000L
     }
 }

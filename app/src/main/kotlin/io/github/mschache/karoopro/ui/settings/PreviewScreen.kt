@@ -32,7 +32,7 @@ import kotlinx.coroutines.withTimeoutOrNull
 data class PreviewOptions(val noPowerMeter: Boolean = false, val overlay: Int = 0)
 
 /**
- * The real KarooPRO field, rendered from demo data into this screen. Taps on the field run the same
+ * The real KarooPro field, rendered from demo data into this screen. Taps on the field run the same
  * actions as on a ride page (flip panels, switch the big number).
  */
 @Composable
@@ -57,7 +57,7 @@ fun PreviewScreen(initial: PreviewOptions = PreviewOptions()) {
             if (w > 0 && h > 0) {
                 val density = context.resources.displayMetrics.density
                 val o = currentOptions
-                // The Coach panel shows Karoo Coach's real message once it's set up.
+                // The Coach panel shows KarooCoach's real message once it's set up.
                 val coach = graph.coach.state.value?.takeIf { it.configured }
                 val source = DemoSource(
                     graph.settings.value, graph.hub.profile.value, t = t, noPowerMeter = o.noPowerMeter, overlayMode = o.overlay,
@@ -72,7 +72,7 @@ fun PreviewScreen(initial: PreviewOptions = PreviewOptions()) {
                 val composed = System.currentTimeMillis()
                 host.show(views)
                 android.util.Log.d(
-                    "KarooPRO",
+                    "KarooPro",
                     "preview frame ${model.panel}: paint ${composed - started} ms, apply ${System.currentTimeMillis() - composed} ms",
                 )
             }

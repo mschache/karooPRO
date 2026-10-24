@@ -3,9 +3,10 @@
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- Rising effort bars -->
-    <path android:fillColor="#FF2E9BFF" android:pathData="M3,15h3.5v6H3z" />
-    <path android:fillColor="#FF2E9BFF" android:pathData="M8.5,11H12v10H8.5z" />
-    <path android:fillColor="#FF2E9BFF" android:pathData="M14,7h3.5v14H14z" />
-    <path android:fillColor="#FF2E9BFF" android:pathData="M19.5,3H23v18h-3.5z" />
+    <!-- The zone ladder: the current zone full width, the one above faded -->
+    <path android:fillColor="#662E9BFF" android:pathData="M7.30,3.10h9.40a1.30,1.30 0 0 1 0,2.60h-9.40a1.30,1.30 0 0 1 0,-2.60z" />
+    <path android:fillColor="#FF2E9BFF" android:pathData="M4.30,6.90h15.40a1.30,1.30 0 0 1 0,2.60h-15.40a1.30,1.30 0 0 1 0,-2.60z" />
+    <path android:fillColor="#FF2E9BFF" android:pathData="M7.30,10.70h9.40a1.30,1.30 0 0 1 0,2.60h-9.40a1.30,1.30 0 0 1 0,-2.60z" />
+    <path android:fillColor="#FF2E9BFF" android:pathData="M7.30,14.50h9.40a1.30,1.30 0 0 1 0,2.60h-9.40a1.30,1.30 0 0 1 0,-2.60z" />
+    <path android:fillColor="#FF2E9BFF" android:pathData="M7.30,18.30h9.40a1.30,1.30 0 0 1 0,2.60h-9.40a1.30,1.30 0 0 1 0,-2.60z" />
 </vector>

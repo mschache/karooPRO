@@ -16,7 +16,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * Which panel the field shows. Shared by every KarooPRO field instance; flipped by taps and bonus
+ * Which panel the field shows. Shared by every KarooPro field instance; flipped by taps and bonus
  * actions, and switched automatically when a workout starts, Di2/AXS shifting appears or a coach
  * message arrives. During a workout, a Coach panel that opened by itself goes back after 20 s
  * without a tap, so coach messages never hide the target for long. The Climb panel opens just

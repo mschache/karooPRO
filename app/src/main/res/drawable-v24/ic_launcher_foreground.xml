@@ -1,12 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Rising effort bars in zone colors, inside the 66dp adaptive-icon safe zone. -->
+<!-- The hero's zone ladder: zones up to the current one in color, the current one (Z5) full width, the one above gray.
+     Inside the 66 dp adaptive-icon safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
     android:height="108dp"
     android:viewportWidth="108"
     android:viewportHeight="108">
-    <path android:fillColor="#FF00B988" android:pathData="M30,62h9v16h-9z" />
-    <path android:fillColor="#FFFFF500" android:pathData="M43,52h9v26h-9z" />
-    <path android:fillColor="#FFFE581F" android:pathData="M56,42h9v36h-9z" />
-    <path android:fillColor="#FFB700A2" android:pathData="M69,30h9v48h-9z" />
+    <!-- At 80 %: Android shows the middle 72 of 108 units, and the bars want some room. -->
+    <group android:pivotX="54" android:pivotY="54" android:scaleX="0.8" android:scaleY="0.8">
+        <path android:fillColor="#FF3A3F45" android:pathData="M39.20,25.80h29.60a4.20,4.20 0 0 1 0,8.40h-29.60a4.20,4.20 0 0 1 0,-8.40z" />
+        <path android:fillColor="#FFFE581F" android:pathData="M30.20,37.80h47.60a4.20,4.20 0 0 1 0,8.40h-47.60a4.20,4.20 0 0 1 0,-8.40z" />
+        <path android:fillColor="#FFFFF500" android:pathData="M39.20,49.80h29.60a4.20,4.20 0 0 1 0,8.40h-29.60a4.20,4.20 0 0 1 0,-8.40z" />
+        <path android:fillColor="#FF00B988" android:pathData="M39.20,61.80h29.60a4.20,4.20 0 0 1 0,8.40h-29.60a4.20,4.20 0 0 1 0,-8.40z" />
+        <path android:fillColor="#FF60EEB2" android:pathData="M39.20,73.80h29.60a4.20,4.20 0 0 1 0,8.40h-29.60a4.20,4.20 0 0 1 0,-8.40z" />
+    </group>
 </vector>

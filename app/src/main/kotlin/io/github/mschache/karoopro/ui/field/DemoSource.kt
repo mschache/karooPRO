@@ -36,7 +36,7 @@ import kotlin.math.sin
 /**
  * A believable mid-ride snapshot for the page editor and the in-app preview. [t] (seconds) moves the
  * numbers along so the preview shows zone colors changing. [liveCoach] replaces the demo coach
- * message, so the preview shows what Karoo Coach really has; [nowMs] must then be the real time.
+ * message, so the preview shows what KarooCoach really has; [nowMs] must then be the real time.
  */
 class DemoSource(
     override val settings: Settings,

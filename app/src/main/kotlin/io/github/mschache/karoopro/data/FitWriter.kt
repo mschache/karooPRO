@@ -15,7 +15,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
 /**
- * Adds KarooPRO's own values to the ride's FIT file as developer fields, so they show up in
+ * Adds KarooPro's own values to the ride's FIT file as developer fields, so they show up in
  * analysis afterwards (intervals.icu shows developer fields): every second W' balance, carbs burned
  * and eaten, stamina and headwind; the carb totals also go to the session.
  */
