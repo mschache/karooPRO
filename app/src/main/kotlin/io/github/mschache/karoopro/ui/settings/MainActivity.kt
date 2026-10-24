@@ -63,6 +63,22 @@ class MainActivity : ComponentActivity() {
                         java.io.File(dir, "$name.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                     }
                 }
+                // Every big number, with chosen cards and some of the newer tiles on the Ride panel.
+                for (big in io.github.mschache.karoopro.data.BigMetric.entries) {
+                    val s = graph.settings.value.copy(
+                        bigMetrics = io.github.mschache.karoopro.data.BigMetric.entries, bigMetric = big,
+                        heroCards = listOf(io.github.mschache.karoopro.data.Metric.CADENCE, io.github.mschache.karoopro.data.Metric.W_PRIME_EMPTY),
+                        rideTiles = listOf(
+                            io.github.mschache.karoopro.data.Metric.TYRE_FRONT, io.github.mschache.karoopro.data.Metric.ETA,
+                            io.github.mschache.karoopro.data.Metric.CORE_TEMP, io.github.mschache.karoopro.data.Metric.PEDAL_SMOOTHNESS,
+                        ),
+                    )
+                    val src = io.github.mschache.karoopro.ui.field.DemoSource(s, graph.hub.profile.value)
+                    val model = io.github.mschache.karoopro.ui.field.FieldModelBuilder.build(
+                        src, Panel.RIDE, Panel.entries, w / density, h / density, density, interactive = false, systemDark = true,
+                    )
+                    java.io.File(dir, "hero-${big.name.lowercase()}.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                }
                 android.util.Log.i("KarooPRO", "exportshots written to $dir")
             }
         }

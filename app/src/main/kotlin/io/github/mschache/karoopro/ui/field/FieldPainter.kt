@@ -192,10 +192,14 @@ class FieldPainter(context: Context) {
         val pad = r.width() * 0.025f
         val (pillsR, bigR, cardsR) = splitV(RectF(r.left + pad, r.top + pad * 0.6f, r.right - pad, r.bottom - pad * 0.6f), 0.15f, 0.55f, 0.30f, gap = pad * 0.5f)
 
-        // Pills
+        // Pills: all of them up to three, else the big number on top and the one a tap brings next.
         val pillH = pillsR.height()
         var x = pillsR.left
-        for (option in h.options) {
+        val pills = if (h.options.size <= 3) h.options else {
+            val i = h.options.indexOf(h.big).coerceAtLeast(0)
+            listOf(h.options[i], h.options[(i + 1) % h.options.size])
+        }
+        for (option in pills) {
             val selected = option == h.big
             val bg = if (selected) (h.zoneColor ?: p.accent) else ZoneColors.blend(p.faint, h.background, 0.85f)
             val fg = if (selected) ZoneColors.onColor(bg) else h.textColor
