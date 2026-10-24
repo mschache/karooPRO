@@ -38,7 +38,7 @@ class AppGraph(context: Context) {
     val recorder = RideRecorder(hub, settings, RideSnapshotStore(app), scope)
     val weather = WeatherRepository(hub, settings, scope)
     val workout = WorkoutMonitor(hub, settings, alerts, scope, fieldVisible = { fieldVisible() }) { state, now ->
-        coach.state.value?.nextStep(state.stepNumber - 1, state.stepCount, now)
+        coach.state.value?.nextStep(state.stepNumber - 1, state.stepCount, now)?.inWatts(hub.profile.value.ftp)
     }
     val coach = CoachLink(app, settings, scope) { effort() }
     val routes = RouteTracker(hub)

@@ -8,13 +8,15 @@ import io.github.mschache.karoopro.calc.WorkoutState
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.math.abs
+import kotlin.math.roundToInt
 
 /** A message from Karoo Coach; [receivedAt] is when the Karoo got it (epoch ms). */
 data class CoachMessage(val id: String, val title: String, val text: String, val receivedAt: Long)
 
 /**
  * One upcoming step of a planned workout. [index] is the Karoo's 0-based step; [low]/[high] are
- * watts (equal for a steady step, from → to for a [ramp]), null for a step without a power target.
+ * watts (equal for a steady step, from → to for a [ramp]), null for a step without a power target
+ * or when the relay doesn't know the FTP; [lowPct]/[highPct] are the same targets in % of FTP.
  */
 @Serializable
 data class PlanStep(
@@ -24,7 +26,15 @@ data class PlanStep(
     val high: Int? = null,
     val ramp: Boolean = false,
     val label: String? = null,
-)
+    val lowPct: Double? = null,
+    val highPct: Double? = null,
+) {
+    /** Watts from the % of FTP targets with the Karoo's [ftp] when the relay sent none, as the Karoo does for the step itself. */
+    fun inWatts(ftp: Int): PlanStep {
+        if (low != null || lowPct == null || ftp <= 0) return this
+        return copy(low = (lowPct * ftp / 100).roundToInt(), high = ((highPct ?: lowPct) * ftp / 100).roundToInt())
+    }
+}
 
 /**
  * The plan Karoo Coach's relay matched to the running workout (from intervals.icu or a workout

@@ -255,6 +255,17 @@ class CoachPlanTest {
         assertNull(plan.nextFor(stepIndex = 11, stepCount = 12, ageMs = 0)) // last step
     }
 
+    @Test fun percentOfFtpBecomesWattsWithTheKaroosFtp() {
+        val noFtp = CoachPlan.parse("""{"count":8,"index":0,"steps":[{"index":1,"seconds":60,"low":null,"high":null,"lowPct":105.0,"highPct":105.0}]}""")!!
+        val step = noFtp.nextFor(0, 8, 0)!!.inWatts(250)
+        assertEquals(263, step.low)
+        assertEquals(263, step.high)
+        assertEquals("1:00 @ 263 W", PlanText.summary(step))
+        // Watts from the relay win; a free ride stays open.
+        assertEquals(280, PlanStep(1, 60, 280, 280, lowPct = 105.0).inWatts(250).low)
+        assertNull(PlanStep(1, 60).inWatts(250).low)
+    }
+
     @Test fun targetsAsText() {
         assertEquals("4:00 @ 280 W", PlanText.summary(PlanStep(4, 240, 280, 280)))
         assertEquals("280–300", PlanText.target(PlanStep(4, 240, 280, 300)))
