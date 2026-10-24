@@ -90,13 +90,13 @@ class MainActivity : ComponentActivity() {
                     )
                     java.io.File(dir, "hero-mode-${mode.name.lowercase()}.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                 }
-                // The Panels field: every slide in a short and a taller map-page slot.
+                // The Panels field: every slide in the Karoo 3's map-page slot, a half-width slot and a taller one.
                 for ((i, panel) in (listOf(Panel.NUMBER) + Panel.PANELS).withIndex()) {
                     val src = io.github.mschache.karoopro.ui.field.DemoSource(graph.settings.value, graph.hub.profile.value, t = 12L * i)
                     val model = io.github.mschache.karoopro.ui.field.FieldModelBuilder.compact(
                         src, panel, listOf(Panel.NUMBER) + Panel.PANELS, density, interactive = false, systemDark = true,
                     )
-                    for ((suffix, size) in listOf("short" to (478 to 130), "tall" to (478 to 210))) {
+                    for ((suffix, size) in listOf("map" to (474 to 143), "half" to (240 to 128), "tall" to (478 to 210))) {
                         java.io.File(dir, "panels-${panel.name.lowercase()}-$suffix.png").outputStream().use {
                             painter.paintCompact(model, size.first, size.second).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
                         }

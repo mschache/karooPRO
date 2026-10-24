@@ -1063,14 +1063,23 @@ class FieldPainter(context: Context) {
         label(c, m.title, r.left, top, cap, p.dim, maxWidth = r.width() - dotsW - r.height(), face = medium)
     }
 
-    /** The big number with its unit, and the zone and the other two numbers beside it when there's room. */
+    /**
+     * The big number with its unit, and the zone and the other two numbers beside it. A wide, short slot
+     * (the map page) puts those two side by side under the zone; a narrower one stacks them, one when short.
+     */
     private fun compactNumber(c: Canvas, m: CompactModel, p: Palette, hero: HeroModel, r: RectF) {
-        val sideW = r.width() * 0.32f
+        val wide = r.width() > r.height() * 2.5f
+        val sideW = r.width() * if (wide) 0.46f else 0.32f
         val gap = r.width() * 0.03f
         number(c, hero.value, hero.unit, RectF(r.left, r.top, r.right - sideW - gap, r.bottom), hero.numberColor, hero.dimColor, inkFraction = 0.88f, unitScale = 0.24f)
         val side = RectF(r.right - sideW, r.top, r.right, r.bottom)
-        val cards = hero.cards.take(if (r.height() > m.density * 48) 2 else 1)
-        val parts = splitV(side, *(listOf(0.32f) + cards.map { 0.68f / cards.size.coerceAtLeast(1) }).toFloatArray(), gap = r.height() * 0.06f)
+        val cards = hero.cards.take(if (wide || r.height() > m.density * 64) 2 else 1)
+        val parts = if (wide) {
+            val (top, bottom) = splitV(side, 0.3f, 0.7f, gap = r.height() * 0.08f)
+            listOf(top) + row(bottom, cards.size.coerceAtLeast(1), gap)
+        } else {
+            splitV(side, *(listOf(0.32f) + cards.map { 0.68f / cards.size.coerceAtLeast(1) }).toFloatArray(), gap = r.height() * 0.06f)
+        }
         val badge = parts[0]
         val badgeBg = hero.zoneColor ?: m.palette.faint
         val badgeR = RectF(badge.left, badge.top, badge.left + min(badge.width(), badge.height() * 2.4f), badge.bottom)
