@@ -103,7 +103,7 @@ class MainActivity : ComponentActivity() {
             overlay = intent.getIntExtra("overlay", 0),
         )
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFF2E9BFF))) {
+            MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFF2E9BFF), onPrimary = Color.Black)) {
                 var screen by remember { mutableStateOf(start) }
                 BackHandler(enabled = screen != Screen.HOME) { screen = Screen.HOME }
                 Box(Modifier.fillMaxSize().background(Color.Black)) {

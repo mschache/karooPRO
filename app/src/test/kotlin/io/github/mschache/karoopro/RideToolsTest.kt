@@ -170,7 +170,7 @@ class StripTest {
         val s = io.github.mschache.karoopro.data.Settings()
         val strip = io.github.mschache.karoopro.ui.field.FieldModelBuilder.strip(io.github.mschache.karoopro.ui.field.DemoSource(s, profile), systemDark = true)
         // The demo rides a segment, a workout and a climb at once: those three, then the first chosen value.
-        assertEquals(listOf("VS PR", "TARGET", "TO TOP", "W' BAL"), strip.cells.map { it.label })
+        assertEquals(listOf("VS PR", "TARGET", "TO TOP", "W′ BAL"), strip.cells.map { it.label })
     }
 
     @Test fun onlyTheChosenValuesWithoutContext() {

@@ -262,7 +262,7 @@ object FieldModelBuilder {
                 EffortContent(
                     bars = bars,
                     barMax = scaleMax,
-                    wPrime = Stat("W' BAL", Fmt.decimal(wBal?.div(1000), 1), "kJ"),
+                    wPrime = Stat("W′ BAL", Fmt.decimal(wBal?.div(1000), 1), "kJ"),
                     wPrimeFraction = wBal?.let { (it / src.wPrimeMax).toFloat().coerceIn(0f, 1f) },
                     stats = listOf(
                         Stat("GRADE", Fmt.decimal(src.value(Metric.GRADE), 1), "%"),
@@ -280,7 +280,7 @@ object FieldModelBuilder {
                 val lap = src.value(Metric.LAP_NUMBER)?.toInt()
                 val hasPrevious = (lap ?: 1) > 1
                 LapContent(
-                    title = lap?.let { "LAP $it" + if (hasPrevious) "  vs LAP ${it - 1}" else "" } ?: "LAP",
+                    title = lap?.let { "LAP $it" + if (hasPrevious) " VS LAP ${it - 1}" else "" } ?: "LAP",
                     fields = s.lapFields.map { lm ->
                         val cur = src.value(lm.current)
                         val prev = if (hasPrevious) src.value(lm.previous) else null
@@ -404,7 +404,7 @@ object FieldModelBuilder {
             src.results.map { r ->
                 when (r) {
                     is ClimbResult -> ResultRow(
-                        title = "CLIMB ${r.number}/${r.total} · ${Fmt.distance(r.length, u)} $km · ${Fmt.decimal(r.gain / r.length * 100, 1)} %",
+                        title = "CLIMB ${r.number}/${r.total} · ${Fmt.distance(r.length, u)} $km · ${Fmt.decimal(r.gain / r.length * 100, 1)}%",
                         main = Fmt.seconds(r.seconds.toLong()),
                         detail = listOfNotNull(
                             r.avgPower?.let { "${Fmt.int(it)} W" },
@@ -476,7 +476,7 @@ object FieldModelBuilder {
         val next = p.next
         val stamina = src.value(Metric.STAMINA)
         return PaceContent(
-            title = "PACE · ${p.intensity} % FTP",
+            title = "PACE · ${p.intensity}% FTP",
             target = "${p.target}",
             low = p.low,
             high = p.high,

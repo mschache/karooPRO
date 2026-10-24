@@ -80,9 +80,9 @@ enum class Metric(
     TYRE_FRONT("TYRE F", Source.Karoo(Type.TIRE_PRESSURE_FRONT, Field.TIRE_PRESSURE), Format.PRESSURE),
     TYRE_REAR("TYRE R", Source.Karoo(Type.TIRE_PRESSURE_REAR, Field.TIRE_PRESSURE), Format.PRESSURE),
 
-    W_PRIME("W' BAL", Source.Computed, Format.KJ, "W_PRIME"),
+    W_PRIME("W′ BAL", Source.Computed, Format.KJ, "W_PRIME"),
     /** Time until W' runs out at the current 3 s power; null at or below CP. */
-    W_PRIME_EMPTY("W' EMPTY IN", Source.Computed, Format.DURATION),
+    W_PRIME_EMPTY("W′ EMPTY IN", Source.Computed, Format.DURATION),
     /** Long-term and short-term stamina (estimates), and how long the current effort can last. */
     STAMINA("STAMINA", Source.Computed, Format.PERCENT),
     STAMINA_NOW("STAMINA NOW", Source.Computed, Format.PERCENT),

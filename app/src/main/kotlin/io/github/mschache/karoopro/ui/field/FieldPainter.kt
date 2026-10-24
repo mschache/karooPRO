@@ -33,6 +33,8 @@ private const val HEADER_FRACTION = 0.075f
  */
 class FieldPainter(context: Context) {
     private val bold: Typeface = ResourcesCompat.getFont(context, R.font.oswald_bold) ?: Typeface.DEFAULT_BOLD
+    /** Labels and units: a step lighter than the numbers, so the two don't compete. */
+    private val medium: Typeface = ResourcesCompat.getFont(context, R.font.oswald_medium) ?: bold
     private val inkBounds = Rect()
 
     /** Cap height relative to text size for the bundled font, measured once. */
@@ -109,11 +111,13 @@ class FieldPainter(context: Context) {
 
     // ---------------------------------------------------------------- text
 
-    private fun textPaint(color: Int, size: Float, align: Paint.Align = Paint.Align.LEFT) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+    private fun textPaint(color: Int, size: Float, align: Paint.Align = Paint.Align.LEFT, face: Typeface = bold) = Paint(Paint.ANTI_ALIAS_FLAG).apply {
         this.color = color
         textSize = size
-        typeface = bold
+        typeface = face
         textAlign = align
+        // Small condensed capitals crowd together; labels get a little air.
+        if (face === medium) letterSpacing = LABEL_TRACKING
     }
 
     private fun fill(color: Int) = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
@@ -126,19 +130,73 @@ class FieldPainter(context: Context) {
         strokeJoin = Paint.Join.ROUND
     }
 
-    /** Text whose cap height is [capHeight] px, its top at [top]. Returns the drawn width. */
-    private fun label(c: Canvas, text: String, x: Float, top: Float, capHeight: Float, color: Int, align: Paint.Align = Paint.Align.LEFT, maxWidth: Float = Float.MAX_VALUE): Float {
+    /**
+     * Text whose cap height is [capHeight] px, its top at [top]. Returns the drawn width. [steady]
+     * keeps a value that changes every second from shifting (see [drawSteady]).
+     */
+    private fun label(
+        c: Canvas,
+        text: String,
+        x: Float,
+        top: Float,
+        capHeight: Float,
+        color: Int,
+        align: Paint.Align = Paint.Align.LEFT,
+        maxWidth: Float = Float.MAX_VALUE,
+        face: Typeface = bold,
+        steady: Boolean = false,
+    ): Float {
         if (text.isEmpty()) return 0f
-        val p = textPaint(color, capHeight / capRatio, align)
-        val width = p.measureText(text)
+        val p = textPaint(color, capHeight / capRatio, if (steady) Paint.Align.LEFT else align, face)
+        val width = if (steady) steadyWidth(text, p) else p.measureText(text)
         if (width > maxWidth) p.textSize *= maxWidth / width
-        c.drawText(text, x, top + p.textSize * capRatio, p)
-        return min(width, maxWidth)
+        val drawn = min(width, maxWidth)
+        val baseline = top + p.textSize * capRatio
+        if (steady) {
+            val left = when (align) {
+                Paint.Align.LEFT -> x
+                Paint.Align.CENTER -> x - drawn / 2
+                Paint.Align.RIGHT -> x - drawn
+            }
+            drawSteady(c, text, left, baseline, p)
+        } else {
+            c.drawText(text, x, baseline, p)
+        }
+        return drawn
+    }
+
+    /**
+     * Draws [text] from [x] with every digit in a slot as wide as "0". Oswald's digits differ in
+     * width (a "1" is 30 % narrower), so values that change every second would otherwise shift.
+     * [p] must be left-aligned.
+     */
+    private fun drawSteady(c: Canvas, text: String, x: Float, baseline: Float, p: Paint) {
+        val slot = p.measureText("0")
+        var cx = x
+        for (ch in text) {
+            val s = ch.toString()
+            val w = p.measureText(s)
+            if (ch in '0'..'9') {
+                c.drawText(s, cx + (slot - w) / 2, baseline, p)
+                cx += slot
+            } else {
+                c.drawText(s, cx, baseline, p)
+                cx += w
+            }
+        }
+    }
+
+    private fun steadyWidth(text: String, p: Paint): Float {
+        val slot = p.measureText("0")
+        var w = 0f
+        for (ch in text) w += if (ch in '0'..'9') slot else p.measureText(ch.toString())
+        return w
     }
 
     /**
      * A number plus optional unit fitted into [r]: digits as tall as [inkFraction] of the box unless
-     * the width runs out. [align] places the group; the unit sits on the number's baseline.
+     * the width runs out, in steady slots. [align] places the group; the unit sits on the number's
+     * baseline.
      */
     private fun number(
         c: Canvas,
@@ -159,9 +217,9 @@ class FieldPainter(context: Context) {
         val placeholder = if (value == Fmt.NONE) 0.45f else 1f
         var size = r.height() * inkFraction / inkPer100 * 100f
         p.textSize = size * placeholder
-        val u = textPaint(unitColor, size * unitScale)
+        val u = textPaint(unitColor, size * unitScale, face = medium)
         val gap = if (unit.isNotEmpty()) size * 0.06f else 0f
-        var total = p.measureText(value) + gap + (if (unit.isNotEmpty()) u.measureText(unit) else 0f)
+        var total = steadyWidth(value, p) + gap + (if (unit.isNotEmpty()) u.measureText(unit) else 0f)
         if (total > r.width()) {
             val k = r.width() / total
             size *= k
@@ -176,8 +234,8 @@ class FieldPainter(context: Context) {
             Paint.Align.CENTER -> r.centerX() - total / 2
             Paint.Align.RIGHT -> r.right - total
         }
-        c.drawText(value, x, baseline, p)
-        if (unit.isNotEmpty()) c.drawText(unit, x + p.measureText(value) + gap, baseline, u)
+        drawSteady(c, value, x, baseline, p)
+        if (unit.isNotEmpty()) c.drawText(unit, x + steadyWidth(value, p) + gap, baseline, u)
         return total
     }
 
@@ -189,11 +247,17 @@ class FieldPainter(context: Context) {
             Paint.Align.CENTER -> r.centerX()
             Paint.Align.RIGHT -> r.right
         }
-        label(c, s.label, x, r.top, labelH, p.dim, align, r.width())
+        label(c, s.label, x, r.top, labelH, p.dim, align, r.width(), medium)
         number(c, s.value, s.unit, RectF(r.left, r.top + labelH * 1.6f, r.right, r.bottom), s.accent ?: p.text, p.dim, 0.8f, align)
     }
 
     private fun card(c: Canvas, r: RectF, color: Int, radius: Float) = c.drawRoundRect(r, radius, radius, fill(color))
+
+    /** One corner for every card: concentric with the Karoo's own 10.67 dp field corner around the panel padding. */
+    private fun cardCorner(m: FieldModel) = m.density * CARD_CORNER_DP
+
+    /** Smaller pieces inside the hero (zone badge, ladder backing). */
+    private fun chipCorner(m: FieldModel) = m.density * CHIP_CORNER_DP
 
     private fun row(r: RectF, n: Int, gap: Float): List<RectF> {
         val w = (r.width() - gap * (n - 1)) / n
@@ -228,7 +292,9 @@ class FieldPainter(context: Context) {
         }
         for (option in pills) {
             val selected = option == h.big
+            // On a filled hero the other options are a shade of the zone color, not a gray laid over it.
             val bg = when {
+                !selected && h.filled -> ZoneColors.blend(BLACK, h.background, 0.18f)
                 !selected -> ZoneColors.blend(p.faint, h.background, 0.85f)
                 h.filled -> h.textColor
                 else -> h.zoneColor ?: p.accent
@@ -247,10 +313,10 @@ class FieldPainter(context: Context) {
         for (st in h.stats.reversed()) {
             val vp = textPaint(h.textColor, pillH * 0.62f / capRatio)
             val text = st.value + st.unit
-            val vw = max(vp.measureText(text), textPaint(h.dimColor, pillH * 0.26f / capRatio).measureText(st.label))
+            val vw = max(steadyWidth(text, vp), textPaint(h.dimColor, pillH * 0.26f / capRatio, face = medium).measureText(st.label))
             if (right - vw < x) break
-            label(c, st.label, right, pillsR.top, pillH * 0.26f, h.dimColor, Paint.Align.RIGHT)
-            label(c, text, right, pillsR.top + pillH * 0.38f, pillH * 0.62f, h.textColor, Paint.Align.RIGHT)
+            label(c, st.label, right, pillsR.top, pillH * 0.26f, h.dimColor, Paint.Align.RIGHT, face = medium)
+            label(c, text, right, pillsR.top + pillH * 0.38f, pillH * 0.62f, h.textColor, Paint.Align.RIGHT, steady = true)
             right -= vw + pad * 0.9f
         }
 
@@ -261,7 +327,7 @@ class FieldPainter(context: Context) {
         val zr = RectF(bigR.right - zoneW, bigR.top, bigR.right, bigR.bottom)
         val badge = RectF(zr.left, zr.top + zr.height() * 0.04f, zr.right, zr.top + zr.height() * 0.3f)
         val badgeBg = if (h.filled) h.textColor else h.zoneColor ?: p.faint
-        val corner = badge.height() * 0.22f
+        val corner = chipCorner(m)
         c.drawRoundRect(badge, corner, corner, fill(badgeBg))
         number(c, h.zone?.let { "Z$it" } ?: "Z-", "", RectF(badge.left, badge.top, badge.right, badge.bottom), ZoneColors.onColor(badgeBg), 0, 0.56f, Paint.Align.CENTER)
         // On a filled hero the current zone's bar is the background color: the ladder gets a card behind it.
@@ -272,7 +338,7 @@ class FieldPainter(context: Context) {
         } else {
             RectF(zr.left + zoneW * 0.12f, badge.bottom + zr.height() * 0.06f, zr.right - zoneW * 0.12f, zr.bottom - zr.height() * 0.02f)
         }
-        zoneLadder(c, h.zoneColors, h.zone, ladder, if (h.filled) p.card else h.background, p.faint)
+        zoneLadder(c, h.zoneColors, h.zone, ladder, p.faint)
 
         // Cards
         row(cardsR, h.cards.size, pad).forEachIndexed { i, cr -> heroCard(c, m, h.cards[i], cr) }
@@ -280,7 +346,7 @@ class FieldPainter(context: Context) {
 
     private fun heroCard(c: Canvas, m: FieldModel, card: CardModel, r: RectF) {
         val p = m.palette
-        val radius = r.height() * 0.14f
+        val radius = cardCorner(m)
         card(c, r, p.card, radius)
         val bar = r.width() * 0.025f
         // On a filled hero the accent can be the background color: keep a rim of card around the bar.
@@ -291,12 +357,13 @@ class FieldPainter(context: Context) {
         c.drawRoundRect(edge, radius - rim, radius - rim, fill(card.accent ?: p.faint))
         c.restore()
         val inner = RectF(edge.left + bar * 2.2f, r.top + r.height() * 0.12f, r.right - r.width() * 0.04f, r.bottom - r.height() * 0.1f)
-        label(c, card.label, inner.left, inner.top, r.height() * 0.13f, p.dim)
-        card.avg?.let { label(c, "AVG $it", inner.right, inner.top, r.height() * 0.13f, p.dim, Paint.Align.RIGHT) }
+        label(c, card.label, inner.left, inner.top, r.height() * 0.13f, p.dim, face = medium)
+        card.avg?.let { label(c, "AVG $it", inner.right, inner.top, r.height() * 0.13f, p.dim, Paint.Align.RIGHT, face = medium) }
         number(c, card.value, card.unit, RectF(inner.left, inner.top + r.height() * 0.24f, inner.right, inner.bottom), p.text, p.dim, 0.86f, unitScale = 0.3f)
     }
 
-    private fun zoneLadder(c: Canvas, colors: List<Int>, current: Int?, r: RectF, background: Int, idle: Int) {
+    /** Zones up to the current one in their colors, the ones above in plain [idle] gray. */
+    private fun zoneLadder(c: Canvas, colors: List<Int>, current: Int?, r: RectF, idle: Int) {
         if (colors.isEmpty()) return
         val n = colors.size
         val gap = r.height() * 0.04f
@@ -306,7 +373,7 @@ class FieldPainter(context: Context) {
             val top = r.top + i * (barH + gap)
             val active = current != null && zone <= current
             val inset = if (zone == current) 0f else r.width() * 0.16f
-            val color = if (active) colors[zone - 1] else ZoneColors.blend(colors[zone - 1], ZoneColors.blend(idle, background, 0.5f), 0.3f)
+            val color = if (active) colors[zone - 1] else idle
             c.drawRoundRect(RectF(r.left + inset, top, r.right - inset, top + barH), barH / 2, barH / 2, fill(color))
         }
     }
@@ -331,6 +398,11 @@ class FieldPainter(context: Context) {
         label(c, m.panel.title, r.centerX(), r.top + h * 0.14f, h * 0.38f, p.text, Paint.Align.CENTER)
         val n = m.panels.size
         val cur = m.panels.indexOf(m.panel)
+        // Past a handful of panels the dots get too small to read on the bike: say where you are instead.
+        if (n > MAX_DOTS) {
+            label(c, "${cur + 1}/$n", r.centerX(), r.top + h * 0.6f, h * 0.25f, p.dim, Paint.Align.CENTER, face = medium)
+            return
+        }
         val dotR = h * 0.065f
         val step = dotR * 3.4f
         val start = r.centerX() - step * (n - 1) / 2
@@ -373,10 +445,9 @@ class FieldPainter(context: Context) {
         rows.forEachIndexed { ri, rowR ->
             row(rowR, 2, gap).forEachIndexed { ci, tr ->
                 val t = content.tiles.getOrNull(ri * 2 + ci) ?: return@forEachIndexed
-                val radius = tr.height() * 0.1f
-                card(c, tr, p.card, radius)
+                card(c, tr, p.card, cardCorner(m))
                 val pad = tr.width() * 0.05f
-                label(c, t.label, tr.left + pad, tr.top + tr.height() * 0.09f, tr.height() * 0.1f, p.dim, maxWidth = tr.width() - 2 * pad)
+                label(c, t.label, tr.left + pad, tr.top + tr.height() * 0.09f, tr.height() * 0.1f, p.dim, maxWidth = tr.width() - 2 * pad, face = medium)
                 number(c, t.value, t.unit, RectF(tr.left + pad, tr.top + tr.height() * 0.26f, tr.right - pad, tr.top + tr.height() * 0.66f), p.text, p.dim, 0.86f, unitScale = 0.3f)
                 t.graph?.let { g ->
                     c.save()
@@ -437,7 +508,7 @@ class FieldPainter(context: Context) {
         e.stats.forEachIndexed { i, s -> stat(c, m.palette, s, cells[i + 1]) }
         // Terrain
         terrain(c, e.terrain, terrainR, p.faint, p.dim, p.accent)
-        label(c, e.terrainLabel, terrainR.left, terrainR.top, terrainR.height() * 0.12f, p.dim)
+        label(c, e.terrainLabel, terrainR.left, terrainR.top, terrainR.height() * 0.12f, p.dim, face = medium)
     }
 
     private fun terrain(c: Canvas, points: List<Pair<Float, Float>>, r: RectF, behind: Int, ahead: Int, marker: Int) {
@@ -529,7 +600,7 @@ class FieldPainter(context: Context) {
             val arrowLen = min(col.width() * 0.45f, col.height() * 0.32f)
             h.relativeToDeg?.let { arrow(c, col.centerX(), col.top + col.height() * 0.2f, arrowLen, it, windColor(h.kind, p)) }
             label(c, h.speed, col.centerX(), col.top + col.height() * 0.44f, col.height() * 0.2f, p.text, Paint.Align.CENTER)
-            label(c, h.label, col.centerX(), col.top + col.height() * 0.76f, col.height() * 0.15f, p.dim, Paint.Align.CENTER)
+            label(c, h.label, col.centerX(), col.top + col.height() * 0.76f, col.height() * 0.15f, p.dim, Paint.Align.CENTER, face = medium)
         }
     }
 
@@ -537,13 +608,13 @@ class FieldPainter(context: Context) {
         val p = m.palette
         val gap = r.width() * 0.015f
         val (titleR, gridR) = splitV(r, 0.13f, 0.87f, gap = gap)
-        label(c, l.title, titleR.left, titleR.top + titleR.height() * 0.1f, titleR.height() * 0.62f, p.dim)
+        label(c, l.title, titleR.left, titleR.top + titleR.height() * 0.19f, titleR.height() * 0.62f, p.text)
         splitV(gridR, 1f, 1f, gap = gap).forEachIndexed { ri, rowR ->
             row(rowR, 2, gap).forEachIndexed { ci, cr ->
                 val f = l.fields.getOrNull(ri * 2 + ci) ?: return@forEachIndexed
-                card(c, cr, p.card, cr.height() * 0.1f)
+                card(c, cr, p.card, cardCorner(m))
                 val pad = cr.width() * 0.05f
-                label(c, f.label, cr.left + pad, cr.top + cr.height() * 0.1f, cr.height() * 0.12f, p.dim)
+                label(c, f.label, cr.left + pad, cr.top + cr.height() * 0.1f, cr.height() * 0.12f, p.dim, face = medium)
                 val (arrowText, color) = when (f.trend) {
                     Trend.UP -> "▲" to p.good
                     Trend.DOWN -> "▼" to p.bad
@@ -556,7 +627,7 @@ class FieldPainter(context: Context) {
                     val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color; textSize = cr.height() * 0.28f; textAlign = Paint.Align.CENTER }
                     c.drawText(arrowText, cr.right - pad - arrowW / 2, cr.top + cr.height() * 0.64f, tp)
                 }
-                f.previous?.let { label(c, "prev $it", cr.left + pad, cr.top + cr.height() * 0.8f, cr.height() * 0.1f, p.dim) }
+                f.previous?.let { label(c, "PREV $it", cr.left + pad, cr.top + cr.height() * 0.8f, cr.height() * 0.1f, p.dim, face = medium) }
             }
         }
     }
@@ -566,7 +637,7 @@ class FieldPainter(context: Context) {
         val gap = r.width() * 0.02f
         val (bestR, titleR, zonesR, totalsR) = splitV(r, 0.25f, 0.08f, 0.42f, 0.25f, gap = r.height() * 0.025f)
         row(bestR, a.best.size, gap).forEachIndexed { i, cell -> stat(c, m.palette, a.best[i], cell) }
-        label(c, a.zoneTitle, titleR.left, titleR.top, titleR.height() * 0.8f, p.dim)
+        label(c, a.zoneTitle, titleR.left, titleR.top, titleR.height() * 0.8f, p.dim, face = medium)
         if (a.zones.isNotEmpty()) {
             val rowH = zonesR.height() / a.zones.size
             val labelW = zonesR.width() * 0.08f
@@ -574,7 +645,7 @@ class FieldPainter(context: Context) {
             val barMax = zonesR.width() - labelW - timeW
             a.zones.forEachIndexed { i, z ->
                 val top = zonesR.top + i * rowH
-                label(c, z.label, zonesR.left, top + rowH * 0.18f, rowH * 0.58f, p.dim)
+                label(c, z.label, zonesR.left, top + rowH * 0.18f, rowH * 0.58f, p.dim, face = medium)
                 val bw = max(2f, barMax * z.fraction)
                 c.drawRoundRect(RectF(zonesR.left + labelW, top + rowH * 0.16f, zonesR.left + labelW + bw, top + rowH * 0.84f), rowH * 0.2f, rowH * 0.2f, fill(z.color))
                 label(c, Fmt.shortDuration(z.seconds), zonesR.right, top + rowH * 0.18f, rowH * 0.58f, p.text, Paint.Align.RIGHT)
@@ -617,9 +688,9 @@ class FieldPainter(context: Context) {
         val color = deviationColor(s.output, s.low, s.high, s.status, p)
         val (lineR, targetR, gaugeR, statsR, nextR) = splitV(r, 0.12f, 0.3f, 0.1f, 0.3f, 0.12f, gap = r.height() * 0.025f)
         label(c, "STEP ${s.stepNumber}/${s.stepCount} · ${s.kind.label}", lineR.left, lineR.top + lineR.height() * 0.15f, lineR.height() * 0.62f, p.text)
-        label(c, s.stepRemainingS?.let { Fmt.seconds(it.toLong()) + " LEFT" } ?: "OPEN", lineR.right, lineR.top + lineR.height() * 0.15f, lineR.height() * 0.62f, p.text, Paint.Align.RIGHT)
+        label(c, s.stepRemainingS?.let { Fmt.seconds(it.toLong()) + " LEFT" } ?: "OPEN", lineR.right, lineR.top + lineR.height() * 0.15f, lineR.height() * 0.62f, p.text, Paint.Align.RIGHT, steady = true)
 
-        val radius = targetR.height() * 0.14f
+        val radius = cardCorner(m)
         card(c, targetR, p.card, radius)
         c.save()
         c.clipRect(targetR.left, targetR.top, targetR.left + targetR.width() * 0.02f, targetR.bottom)
@@ -635,7 +706,7 @@ class FieldPainter(context: Context) {
         val cells = row(statsR, 3, r.width() * 0.03f)
         stat(c, m.palette, Stat("STEP AVG", Fmt.int(s.stepAverage?.toDouble()), wc.unit), cells[0])
         stat(c, m.palette, Stat("IN TARGET", Fmt.int(s.inTargetPercent?.toDouble()), "%", p.good), cells[1])
-        label(c, "PROGRESS", cells[2].left, cells[2].top, cells[2].height() * 0.2f, p.dim)
+        label(c, "PROGRESS", cells[2].left, cells[2].top, cells[2].height() * 0.2f, p.dim, face = medium)
         progress(c, s.progress, RectF(cells[2].left, cells[2].centerY(), cells[2].right, cells[2].centerY() + cells[2].height() * 0.18f), p.text, p.faint)
 
         val whatNext = wc.next ?: "STEP ${s.stepNumber + 1}/${s.stepCount}"
@@ -712,7 +783,7 @@ class FieldPainter(context: Context) {
         val slots = row(battR, b.batteries.size.coerceAtLeast(1), gap)
         b.batteries.forEachIndexed { i, (name, status) ->
             val s = slots[i]
-            val lw = label(c, name, s.left, s.top + s.height() * 0.2f, s.height() * 0.6f, p.dim)
+            val lw = label(c, name, s.left, s.top + s.height() * 0.2f, s.height() * 0.6f, p.dim, face = medium)
             val bw = min(s.height() * 2.2f, s.width() - lw - gap * 0.5f)
             battery(c, status, RectF(s.left + lw + gap * 0.4f, s.top + s.height() * 0.1f, s.left + lw + gap * 0.4f + bw, s.bottom - s.height() * 0.1f), p)
         }
@@ -815,13 +886,13 @@ class FieldPainter(context: Context) {
         label(c, sc.title, topR.left, topR.top + topR.height() * 0.19f, topR.height() * 0.62f, p.text, maxWidth = topR.width())
 
         val labelH = mainR.height() * 0.16f
-        label(c, sc.main.label, mainR.left, mainR.top, labelH, p.dim)
+        label(c, sc.main.label, mainR.left, mainR.top, labelH, p.dim, face = medium)
         number(c, sc.main.value, sc.main.unit, RectF(mainR.left, mainR.top + labelH * 1.4f, mainR.right, mainR.bottom), color(sc.mainAhead), p.dim, 0.9f, Paint.Align.CENTER)
 
         val capH = secondR.height() * 0.55f
         val top = secondR.top + (secondR.height() - capH) / 2
-        val lw = label(c, sc.second.label, secondR.left, top, capH, p.dim)
-        label(c, sc.second.value, secondR.left + lw + gap, top, capH, color(sc.secondAhead))
+        val lw = label(c, sc.second.label, secondR.left, top, capH, p.dim, face = medium)
+        label(c, sc.second.value, secondR.left + lw + gap, top, capH, color(sc.secondAhead), steady = true)
 
         progress(c, sc.progress, barR, p.accent, p.faint)
         row(statsR, sc.stats.size.coerceAtLeast(1), gap).forEachIndexed { i, cell -> sc.stats.getOrNull(i)?.let { stat(c, p, it, cell) } }
@@ -836,9 +907,9 @@ class FieldPainter(context: Context) {
         val rowH = (r.height() - gap * (n - 1)) / n
         rc.rows.take(n).forEachIndexed { i, row ->
             val rr = RectF(r.left, r.top + i * (rowH + gap), r.right, r.top + i * (rowH + gap) + rowH)
-            card(c, rr, p.card, rowH * 0.14f)
+            card(c, rr, p.card, cardCorner(m))
             val inner = RectF(rr.left + rr.width() * 0.03f, rr.top + rowH * 0.1f, rr.right - rr.width() * 0.03f, rr.bottom - rowH * 0.1f)
-            label(c, row.title, inner.left, inner.top, rowH * 0.2f, p.dim, maxWidth = inner.width())
+            label(c, row.title, inner.left, inner.top, rowH * 0.2f, p.dim, maxWidth = inner.width(), face = medium)
             val color = when (row.good) {
                 true -> p.good
                 false -> p.bad
@@ -874,7 +945,7 @@ class FieldPainter(context: Context) {
         val (lineR, targetR, gaugeR, statsR, nextR) = splitV(r, 0.11f, 0.3f, 0.09f, 0.3f, 0.11f, gap = r.height() * 0.025f)
         label(c, pc.title, lineR.left, lineR.top + lineR.height() * 0.15f, lineR.height() * 0.62f, p.text, maxWidth = lineR.width())
 
-        val radius = targetR.height() * 0.14f
+        val radius = cardCorner(m)
         card(c, targetR, p.card, radius)
         c.save()
         c.clipRect(targetR.left, targetR.top, targetR.left + targetR.width() * 0.02f, targetR.bottom)
@@ -907,10 +978,10 @@ class FieldPainter(context: Context) {
         val top = topR.top + (topR.height() - capH) / 2
         val dot = capH * 0.36f
         c.drawCircle(topR.left + dot, top + capH / 2, dot, fill(statusColor))
-        val ageW = label(c, cc.age, topR.right, top, capH, p.dim, Paint.Align.RIGHT)
+        val ageW = label(c, cc.age, topR.right, top, capH, p.dim, Paint.Align.RIGHT, face = medium)
         label(c, cc.status, topR.left + dot * 3f, top, capH, statusColor, maxWidth = topR.width() - dot * 3f - ageW - topR.height())
 
-        val radius = cardR.height() * 0.08f
+        val radius = cardCorner(m)
         card(c, cardR, p.card, radius)
         if (cc.unread) {
             c.save()
@@ -922,7 +993,7 @@ class FieldPainter(context: Context) {
         var textR = inner
         cc.title?.let { title ->
             val titleH = inner.height() * 0.1f
-            label(c, title, inner.left, inner.top, titleH, p.dim, maxWidth = inner.width())
+            label(c, title, inner.left, inner.top, titleH, p.dim, maxWidth = inner.width(), face = medium)
             textR = RectF(inner.left, inner.top + titleH * 2f, inner.right, inner.bottom)
         }
         val color = if (cc.placeholder || !cc.unread) p.dim else p.text
@@ -949,7 +1020,7 @@ class FieldPainter(context: Context) {
 
     private fun overlay(c: Canvas, m: FieldModel, o: OverlayModel, r: RectF) {
         val p = m.palette
-        val radius = min(r.width(), r.height()) * 0.05f
+        val radius = cardCorner(m)
         c.drawRoundRect(r, radius, radius, fill(p.card))
         c.drawRoundRect(r, radius, radius, stroke(p.accent, max(3f, r.width() * 0.008f)))
         val inner = RectF(r.left + r.width() * 0.05f, r.top + r.height() * 0.06f, r.right - r.width() * 0.05f, r.bottom - r.height() * 0.06f)
@@ -960,10 +1031,10 @@ class FieldPainter(context: Context) {
                 if (o.target != null) {
                     // The planned target large, the countdown beside the duration.
                     val sub = listOfNotNull(o.duration, "IN ${o.secondsLeft} S").joinToString(" · ")
-                    label(c, sub, subR.centerX(), subR.top, subR.height() * 0.7f, p.dim, Paint.Align.CENTER, subR.width())
+                    label(c, sub, subR.centerX(), subR.top, subR.height() * 0.7f, p.dim, Paint.Align.CENTER, subR.width(), medium, steady = true)
                     number(c, o.target, "W", numR, p.accent, p.dim, 0.85f, Paint.Align.CENTER, unitScale = 0.25f)
                 } else {
-                    label(c, "STARTS IN", subR.centerX(), subR.top, subR.height() * 0.7f, p.dim, Paint.Align.CENTER)
+                    label(c, "STARTS IN", subR.centerX(), subR.top, subR.height() * 0.7f, p.dim, Paint.Align.CENTER, face = medium)
                     number(c, "${o.secondsLeft}", "", numR, p.accent, p.dim, 0.9f, Paint.Align.CENTER)
                 }
                 progress(c, o.secondsLeft / 10f, barR, p.accent, p.faint)
@@ -972,12 +1043,17 @@ class FieldPainter(context: Context) {
                 val (titleR, numR, subR) = splitV(inner, 0.18f, 0.6f, 0.12f, gap = inner.height() * 0.03f)
                 label(c, o.title, titleR.centerX(), titleR.top, titleR.height() * 0.7f, p.text, Paint.Align.CENTER, titleR.width())
                 number(c, o.target, o.unit, numR, p.good, p.dim, 0.85f, Paint.Align.CENTER, unitScale = 0.25f)
-                label(c, "NEW TARGET", subR.centerX(), subR.top, subR.height() * 0.7f, p.dim, Paint.Align.CENTER)
+                label(c, "NEW TARGET", subR.centerX(), subR.top, subR.height() * 0.7f, p.dim, Paint.Align.CENTER, face = medium)
             }
         }
     }
 
     private companion object {
         const val DIGITS = "0123456789"
+        const val BLACK = 0xFF000000.toInt()
+        const val LABEL_TRACKING = 0.04f
+        const val CARD_CORNER_DP = 7f
+        const val CHIP_CORNER_DP = 4.5f
+        const val MAX_DOTS = 7
     }
 }

@@ -164,7 +164,7 @@ The workflow attaches `app-release.apk` and `manifest.json`, which the Karoo use
 - **License:** KarooPRO is licensed under Apache-2.0.
 - **SDK:** Built on Hammerhead's [karoo-ext](https://github.com/hammerheadnav/karoo-ext) (Apache-2.0).
 - **Weather:** Data by [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
-- **Font:** Numbers use [Oswald](https://github.com/googlefonts/OswaldFont) (SIL Open Font License 1.1, see `LICENSES/OFL-Oswald.txt`).
+- **Font:** Numbers (Bold) and labels (Medium) use [Oswald](https://github.com/googlefonts/OswaldFont) (SIL Open Font License 1.1, see `LICENSES/OFL-Oswald.txt`).
 - **Other open-source Karoo extensions (Apache-2.0 / MIT):**
   - The Karoo zone colors and the bitmap-number approach come from [BigNum](https://github.com/smartycoder/karoo-bignum).
   - The update throttle follows [ki2](https://github.com/valterc/ki2).

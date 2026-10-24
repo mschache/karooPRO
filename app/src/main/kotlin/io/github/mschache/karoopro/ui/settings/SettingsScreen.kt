@@ -196,7 +196,7 @@ fun SettingsScreen() {
             }
         }
 
-        Section("W' balance")
+        Section("W′ balance")
         val ftp = context.graph.hub.profile.collectAsState().value.ftp
         Stepper("CP", settings.criticalPower?.let { "$it W" } ?: "FTP ($ftp W)",
             onMinus = { update { s -> s.copy(criticalPower = ((s.criticalPower ?: ftp) - 5)) } },
@@ -205,7 +205,7 @@ fun SettingsScreen() {
         if (settings.criticalPower != null) {
             TextButton(onClick = { update { it.copy(criticalPower = null) } }) { Text("Use FTP from the Karoo profile") }
         }
-        Stepper("W'", "${settings.wPrimeJoules / 1000.0} kJ",
+        Stepper("W′", "${settings.wPrimeJoules / 1000.0} kJ",
             onMinus = { update { s -> s.copy(wPrimeJoules = s.wPrimeJoules - 500) } },
             onPlus = { update { s -> s.copy(wPrimeJoules = s.wPrimeJoules + 500) } },
         )
