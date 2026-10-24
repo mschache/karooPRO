@@ -39,6 +39,7 @@ With no power meter, KarooPro starts on speed and colors by heart rate.
 - Alerts can appear as a window over the panel or across the full field, plus a Karoo pop-up when you're on another page.
 
 **Extra fields you can place anywhere:**
+- **PRO Panels:** the panels without the big top, for the map page or any short, full-width slot. The big number is the first slide, colored by zone. Each panel shrinks to a row of its key values, and Coach messages keep their own look. Tap left or right to flip, and the middle of the big number to switch it. It keeps its own slide, apart from the full KarooPro field. Workout and Coach still open by themselves there; Bike doesn't.
 - **PRO Strip:** a slim row for map and data pages with up to 6 values you choose (by default W′ balance, stamina, headwind and carb balance). The segment gap, workout target and distance to the top take the first places while they matter.
 - **PRO Wind:** a compass that turns with your heading.
 - **PRO W′ Balance:** in kJ.
@@ -117,8 +118,10 @@ Now ride:
 - Tap the top half to switch the big number.
 - Tap the left or right third of the lower half to change panels.
 
+For the map page, add **KarooPro** → **PRO Panels** below the map instead.
+
 You can also map these to a remote button as Karoo bonus actions:
-- **KarooPro: next panel**, **previous panel**, **switch the big number**.
+- **KarooPro: next panel**, **previous panel** (they flip whichever KarooPro field is on screen), **switch the big number**.
 - **KarooPro: ate a gel**, **ate a bar**, **drank a bottle**, to log fuel without looking.
 
 ## Settings
@@ -135,7 +138,7 @@ Open the **KarooPro** app on the Karoo to:
 - Set the workout alert style, beeps and the pop-up on other pages.
 - Turn weather on or off.
 
-**Preview** shows the real field with demo data, so you can check every panel without riding. Once KarooCoach is set up, the Coach panel there shows its real latest message.
+**Preview** shows the real field with demo data, so you can check every panel without riding. **Map** there shows the PRO Panels field instead. Once KarooCoach is set up, the Coach panel there shows its real latest message.
 
 ## Good to know
 

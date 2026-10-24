@@ -21,6 +21,8 @@
     <string name="action_log_gel">KarooPro: ate a gel</string>
     <string name="action_log_bar">KarooPro: ate a bar</string>
     <string name="action_log_bottle">KarooPro: drank a bottle</string>
+    <string name="panels_name">PRO Panels</string>
+    <string name="panels_description">KarooPro\'s panels without the big top, for the map page or any short slot. The big number is the first slide; tap left or right to flip, the middle to switch the big number. It keeps its own slide, apart from the full KarooPro field.</string>
     <string name="strip_name">PRO Strip</string>
     <string name="strip_description">A slim row of KarooPro values for map and data pages: W′ balance, stamina, wind, carbs, and climb, segment and workout values when they matter.</string>
 </resources>

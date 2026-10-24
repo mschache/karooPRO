@@ -27,6 +27,8 @@ class MainActivity : ComponentActivity() {
         // adb: am start -n io.github.mschache.karoopro/.ui.settings.MainActivity --es screen PREVIEW --es panel BIKE
         val start = intent.getStringExtra("screen")?.let { runCatching { Screen.valueOf(it) }.getOrNull() } ?: Screen.HOME
         intent.getStringExtra("panel")?.let { name -> runCatching { Panel.valueOf(name) }.getOrNull()?.let { graph.panels.show(it) } }
+        // --es mappanel CLIMB picks the Panels field's slide (with --ez map true for its preview).
+        intent.getStringExtra("mappanel")?.let { name -> runCatching { Panel.valueOf(name) }.getOrNull()?.let { graph.mapPanels.show(it) } }
         // Debug builds: adb ... --es weathertest "47.37,8.54" fetches Open-Meteo through the Karoo and logs it.
         if (io.github.mschache.karoopro.BuildConfig.DEBUG) {
             intent.getStringExtra("weathertest")?.split(",")?.mapNotNull { it.trim().toDoubleOrNull() }?.takeIf { it.size == 2 }?.let { (lat, lng) ->
@@ -52,12 +54,12 @@ class MainActivity : ComponentActivity() {
                 val density = resources.displayMetrics.density
                 val (w, h) = 478 to 642
                 val painter = io.github.mschache.karoopro.ui.field.FieldRenderer.painter(this@MainActivity)
-                for ((i, panel) in Panel.entries.withIndex()) {
+                for ((i, panel) in Panel.PANELS.withIndex()) {
                     for (overlay in listOf(0, 1)) {
                         if (overlay == 1 && panel != Panel.WORKOUT) continue
                         val src = io.github.mschache.karoopro.ui.field.DemoSource(graph.settings.value, graph.hub.profile.value, t = 12L * i, overlayMode = overlay)
                         val model = io.github.mschache.karoopro.ui.field.FieldModelBuilder.build(
-                            src, panel, Panel.entries, w / density, h / density, density, interactive = false, systemDark = true,
+                            src, panel, Panel.PANELS, w / density, h / density, density, interactive = false, systemDark = true,
                         )
                         val name = panel.name.lowercase() + if (overlay == 1) "-alert" else ""
                         java.io.File(dir, "$name.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
@@ -75,7 +77,7 @@ class MainActivity : ComponentActivity() {
                     )
                     val src = io.github.mschache.karoopro.ui.field.DemoSource(s, graph.hub.profile.value)
                     val model = io.github.mschache.karoopro.ui.field.FieldModelBuilder.build(
-                        src, Panel.RIDE, Panel.entries, w / density, h / density, density, interactive = false, systemDark = true,
+                        src, Panel.RIDE, Panel.PANELS, w / density, h / density, density, interactive = false, systemDark = true,
                     )
                     java.io.File(dir, "hero-${big.name.lowercase()}.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                 }
@@ -83,10 +85,22 @@ class MainActivity : ComponentActivity() {
                 for (mode in io.github.mschache.karoopro.data.ColorMode.entries) {
                     val s = graph.settings.value.copy(colorMode = mode, bigMetric = io.github.mschache.karoopro.data.BigMetric.SPEED, heroCards = null)
                     val model = io.github.mschache.karoopro.ui.field.FieldModelBuilder.build(
-                        io.github.mschache.karoopro.ui.field.DemoSource(s, graph.hub.profile.value), Panel.RIDE, Panel.entries,
+                        io.github.mschache.karoopro.ui.field.DemoSource(s, graph.hub.profile.value), Panel.RIDE, Panel.PANELS,
                         w / density, h / density, density, interactive = false, systemDark = true,
                     )
                     java.io.File(dir, "hero-mode-${mode.name.lowercase()}.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                }
+                // The Panels field: every slide in a short and a taller map-page slot.
+                for ((i, panel) in (listOf(Panel.NUMBER) + Panel.PANELS).withIndex()) {
+                    val src = io.github.mschache.karoopro.ui.field.DemoSource(graph.settings.value, graph.hub.profile.value, t = 12L * i)
+                    val model = io.github.mschache.karoopro.ui.field.FieldModelBuilder.compact(
+                        src, panel, listOf(Panel.NUMBER) + Panel.PANELS, density, interactive = false, systemDark = true,
+                    )
+                    for ((suffix, size) in listOf("short" to (478 to 130), "tall" to (478 to 210))) {
+                        java.io.File(dir, "panels-${panel.name.lowercase()}-$suffix.png").outputStream().use {
+                            painter.paintCompact(model, size.first, size.second).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+                        }
+                    }
                 }
                 // The PRO Strip in a full-width and a half-width slot.
                 val strip = io.github.mschache.karoopro.ui.field.FieldModelBuilder.strip(
@@ -111,7 +125,7 @@ class MainActivity : ComponentActivity() {
                     val s = io.github.mschache.karoopro.data.Settings(colorMode = shot.mode)
                     val model = io.github.mschache.karoopro.ui.field.FieldModelBuilder.build(
                         io.github.mschache.karoopro.ui.field.DemoSource(s, graph.hub.profile.value, t = shot.t, overlayMode = shot.overlay),
-                        shot.panel, Panel.entries, w / density, h / density, density, interactive = false, systemDark = true,
+                        shot.panel, Panel.PANELS, w / density, h / density, density, interactive = false, systemDark = true,
                     )
                     java.io.File(dir, "${shot.name}.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                 }
@@ -129,6 +143,7 @@ class MainActivity : ComponentActivity() {
         val previewOptions = PreviewOptions(
             noPowerMeter = intent.getBooleanExtra("nopower", false),
             overlay = intent.getIntExtra("overlay", 0),
+            map = intent.getBooleanExtra("map", false),
         )
         setContent {
             MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFF2E9BFF), onPrimary = Color.Black)) {

@@ -155,11 +155,11 @@ class CoachEffortTest {
 
 class CoachPanelTest {
     private val now = 50_000_000L
-    private val settings = Settings(panels = Panel.entries.map { PanelSetting(it) })
+    private val settings = Settings(panels = Panel.PANELS.map { PanelSetting(it) })
 
     private fun content(coach: CoachInfo?): CoachContent {
         val src = DemoSource(settings, Profile.DEFAULT, liveCoach = coach, nowMs = now)
-        val model = FieldModelBuilder.build(src, Panel.COACH, Panel.entries, 255f, 342f, 1.875f, interactive = true, systemDark = true)
+        val model = FieldModelBuilder.build(src, Panel.COACH, Panel.PANELS, 255f, 342f, 1.875f, interactive = true, systemDark = true)
         return model.content as CoachContent
     }
 
@@ -277,7 +277,7 @@ class CoachPlanTest {
 
     @Test fun workoutPanelShowsThePlannedStep() {
         val demo = DemoSource(Settings(), Profile.DEFAULT)
-        val content = FieldModelBuilder.build(demo, Panel.WORKOUT, Panel.entries, 255f, 342f, 1.875f, false, true).content
+        val content = FieldModelBuilder.build(demo, Panel.WORKOUT, Panel.PANELS, 255f, 342f, 1.875f, false, true).content
         assertEquals("4:00 @ 240 W", (content as io.github.mschache.karoopro.ui.field.WorkoutContent).next)
     }
 }

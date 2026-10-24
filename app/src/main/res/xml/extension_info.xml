@@ -13,6 +13,12 @@
         icon="@drawable/ic_karoopro"
         typeId="pro" />
     <DataType
+        description="@string/panels_description"
+        displayName="@string/panels_name"
+        graphical="true"
+        icon="@drawable/ic_karoopro"
+        typeId="panels" />
+    <DataType
         description="@string/strip_description"
         displayName="@string/strip_name"
         graphical="true"

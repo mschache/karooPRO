@@ -110,8 +110,117 @@ object FieldModelBuilder {
                 add(DataType.Type.DISTANCE_TO_DESTINATION)
             }
             Panel.FUEL, Panel.RESULTS -> Unit
-            Panel.WEATHER, Panel.WORKOUT, Panel.COACH -> Unit
+            Panel.WEATHER, Panel.WORKOUT, Panel.COACH, Panel.NUMBER -> Unit
         }
+    }
+
+    /** One slide of the Panels field ([panels] includes [Panel.NUMBER] first). */
+    fun compact(src: RideSource, panel: Panel, panels: List<Panel>, density: Float, interactive: Boolean, systemDark: Boolean): CompactModel {
+        val s = src.settings
+        val p = palette(s.theme, systemDark)
+        if (panel == Panel.NUMBER) {
+            val hero = hero(src, s, p)
+            val bg = if (s.colorMode == ColorMode.NUMBER) p.background else hero.background
+            return CompactModel(p, density, panels, panel, hero.big.label, CompactNumber(hero), bg, interactive)
+        }
+        val content = content(src, panel, p)
+        return CompactModel(p, density, panels, panel, compactTitle(panel, content), compactBody(content, p), p.background, interactive)
+    }
+
+    /** The slide's name: the panel's, or the panel's own headline where it says more ("CLIMB 2/5"). */
+    fun compactTitle(panel: Panel, content: PanelContent): String = when (content) {
+        is ClimbContent -> content.title.takeIf { content.message == null } ?: panel.title
+        is SegmentContent -> content.title.takeIf { content.message == null } ?: panel.title
+        is PaceContent -> content.title.takeIf { content.message == null } ?: panel.title
+        is LapContent -> content.title
+        is WorkoutContent -> content.state?.let { "STEP ${it.stepNumber}/${it.stepCount}" } ?: panel.title
+        else -> panel.title
+    }
+
+    /** A panel's content as a few values for the Panels field, most important first. */
+    fun compactBody(content: PanelContent, p: Palette): CompactBody {
+        fun cell(s: Stat, color: Int? = s.accent) = StripCell(s.label, s.value, s.unit, color)
+        fun aheadColor(ahead: Boolean?) = when (ahead) {
+            true -> p.good
+            false -> p.bad
+            null -> null
+        }
+        return when (content) {
+            NumberContent -> CompactCells(emptyList())
+            is RideContent -> CompactCells(content.tiles.map { StripCell(it.label, it.value, it.unit) })
+            is EffortContent -> CompactCells(
+                listOf(cell(content.wPrime)) + content.stats.map { cell(it) },
+                bar = content.wPrimeFraction,
+                barColor = p.accent,
+            )
+            is ClimbContent -> content.message?.let { CompactCells(emptyList(), message = it) }
+                ?: CompactCells(
+                    (content.big + content.stats).map { cell(it) } +
+                        listOfNotNull(content.effort?.let { StripCell("W′", it.removePrefix("W′ "), "", if (content.effortWarning) p.bad else null) }),
+                    bar = content.rider,
+                    barColor = if (content.effortWarning) p.bad else p.accent,
+                )
+            is SegmentContent -> content.message?.let { CompactCells(emptyList(), message = it) }
+                ?: CompactCells(
+                    listOf(cell(content.main, aheadColor(content.mainAhead)), cell(content.second, aheadColor(content.secondAhead))) + content.stats.map { cell(it) },
+                    bar = content.progress,
+                    barColor = p.accent,
+                )
+            is PaceContent -> content.message?.let { CompactCells(emptyList(), message = it) }
+                ?: CompactCells(listOf(StripCell("TARGET", content.target, "", statusColor(content.status, p))) + content.stats.map { cell(it) })
+            is FuelContent -> CompactCells(
+                listOf(cell(content.eaten), cell(content.burned), cell(content.balance, if (content.onTrack) p.good else p.warn)) +
+                    StripCell("NEXT", if (content.eatDue) "EAT" else if (content.drinkDue) "DRINK" else content.eat, "", if (content.eatDue || content.drinkDue) p.warn else null),
+                bar = content.targetFraction?.coerceIn(0f, 1f),
+                barColor = if (content.onTrack) p.good else p.warn,
+            )
+            is WeatherContent -> content.message?.let { CompactCells(emptyList(), message = it) }
+                ?: CompactCells(listOf(StripCell("WIND", content.component, content.unit, windColor(content.kind, p))) + content.stats.drop(1).map { cell(it) })
+            is LapContent -> CompactCells(
+                content.fields.map { f ->
+                    val (arrow, color) = when (f.trend) {
+                        Trend.UP -> " ▲" to p.good
+                        Trend.DOWN -> " ▼" to p.bad
+                        else -> "" to null
+                    }
+                    StripCell(f.label + arrow, f.value, f.unit, color)
+                },
+            )
+            is AnalysisContent -> CompactCells(content.best.map { cell(it) } + content.totals.map { cell(it) })
+            is ResultsContent -> if (content.rows.isEmpty()) CompactCells(emptyList(), message = "No results yet")
+            else CompactCells(content.rows.map { StripCell(it.title, it.main, "", aheadColor(it.good)) })
+            is WorkoutContent -> content.state?.let { w ->
+                val color = statusColor(w.status, p)
+                val target = if (w.low != null && w.high != null) "${w.low}–${w.high}" else Fmt.NONE
+                CompactCells(
+                    listOf(
+                        StripCell("TARGET", target, content.unit, color),
+                        StripCell("NOW", w.output?.toString() ?: Fmt.NONE, content.unit, color),
+                        StripCell("LEFT", w.stepRemainingS?.let { Fmt.seconds(it.toLong()) } ?: "OPEN", ""),
+                        StripCell("IN TARGET", w.inTargetPercent?.toString() ?: Fmt.NONE, "%"),
+                    ),
+                    bar = w.progress,
+                    barColor = color,
+                )
+            } ?: CompactCells(emptyList(), message = "No workout running")
+            is BikeContent -> if (content.gearing == null) CompactCells(emptyList(), message = "Pair Di2 or AXS to see your gears")
+            else CompactCells(listOf(StripCell("GEARS", content.gears, ""), cell(content.balance)) + content.stats.map { cell(it) })
+            is CoachContent -> CompactText(content.status, content.warning, content.age, content.text, content.placeholder, content.unread, content.hint)
+        }
+    }
+
+    private fun statusColor(s: TargetStatus, p: Palette) = when (s) {
+        TargetStatus.PUSH -> p.push
+        TargetStatus.EASE -> p.bad
+        TargetStatus.IN_RANGE -> p.good
+        TargetStatus.NO_DATA -> p.dim
+    }
+
+    private fun windColor(kind: io.github.mschache.karoopro.calc.WindKind?, p: Palette) = when (kind) {
+        io.github.mschache.karoopro.calc.WindKind.HEAD -> p.bad
+        io.github.mschache.karoopro.calc.WindKind.TAIL -> p.good
+        io.github.mschache.karoopro.calc.WindKind.CROSS -> p.warn
+        null -> p.dim
     }
 
     private fun hero(src: RideSource, s: Settings, p: Palette): HeroModel {
@@ -345,6 +454,7 @@ object FieldModelBuilder {
             }
 
             Panel.COACH -> coach(src)
+            Panel.NUMBER -> NumberContent
 
             Panel.CLIMB -> climb(src)
 

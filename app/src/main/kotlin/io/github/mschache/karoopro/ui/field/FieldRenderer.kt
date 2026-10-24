@@ -33,6 +33,18 @@ object FieldRenderer {
         }
     }
 
+    /** The Panels field: the image plus left / middle / right tap zones over its whole height. */
+    fun panelsField(context: Context, model: CompactModel, widthPx: Int, heightPx: Int): RemoteViews {
+        val bitmap = painter(context).paintCompact(model, widthPx, heightPx)
+        if (!model.interactive) return image(context, bitmap)
+        return RemoteViews(context.packageName, R.layout.field_panels).apply {
+            setImageViewBitmap(R.id.field_image, bitmap)
+            setOnClickPendingIntent(R.id.tap_previous, action(context, FieldActionReceiver.PANELS_PREVIOUS))
+            setOnClickPendingIntent(R.id.tap_middle, action(context, FieldActionReceiver.PANELS_MIDDLE))
+            setOnClickPendingIntent(R.id.tap_next, action(context, FieldActionReceiver.PANELS_NEXT))
+        }
+    }
+
     fun image(context: Context, bitmap: Bitmap): RemoteViews =
         RemoteViews(context.packageName, R.layout.field_image).apply { setImageViewBitmap(R.id.field_image, bitmap) }
 
@@ -51,6 +63,9 @@ class FieldActionReceiver : BroadcastReceiver() {
             NEXT_PANEL -> graph.panels.tap(1)
             PREVIOUS_PANEL -> graph.panels.tap(-1)
             PANEL_MIDDLE -> graph.panels.tap(0)
+            PANELS_PREVIOUS -> graph.panelsTap(-1)
+            PANELS_MIDDLE -> graph.panelsTap(0)
+            PANELS_NEXT -> graph.panelsTap(1)
         }
     }
 
@@ -59,5 +74,8 @@ class FieldActionReceiver : BroadcastReceiver() {
         const val NEXT_PANEL = "io.github.mschache.karoopro.NEXT_PANEL"
         const val PREVIOUS_PANEL = "io.github.mschache.karoopro.PREVIOUS_PANEL"
         const val PANEL_MIDDLE = "io.github.mschache.karoopro.PANEL_MIDDLE"
+        const val PANELS_PREVIOUS = "io.github.mschache.karoopro.PANELS_PREVIOUS"
+        const val PANELS_MIDDLE = "io.github.mschache.karoopro.PANELS_MIDDLE"
+        const val PANELS_NEXT = "io.github.mschache.karoopro.PANELS_NEXT"
     }
 }

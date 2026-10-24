@@ -43,7 +43,7 @@ class ProFieldDataType(private val graph: AppGraph) : DataTypeImpl(EXTENSION_ID,
             if (config.preview) {
                 // Page editor: a static example; taps must stay with the editor.
                 val demo = DemoSource(graph.settings.value, graph.hub.profile.value)
-                val model = FieldModelBuilder.build(demo, Panel.WORKOUT, Panel.entries, widthDp, heightDp, density, false, FieldRenderer.isNight(context))
+                val model = FieldModelBuilder.build(demo, Panel.WORKOUT, Panel.PANELS, widthDp, heightDp, density, false, FieldRenderer.isNight(context))
                 out.updateView(FieldRenderer.field(context, model, wPx, hPx))
                 return@launch
             }

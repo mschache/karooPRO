@@ -6,6 +6,7 @@ import io.github.mschache.karoopro.numeric.CrosswindDataType
 import io.github.mschache.karoopro.numeric.HeadwindDataType
 import io.github.mschache.karoopro.numeric.WPrimeDataType
 import io.github.mschache.karoopro.numeric.WPrimeEmptyDataType
+import io.github.mschache.karoopro.ui.field.PanelsFieldDataType
 import io.github.mschache.karoopro.ui.field.ProFieldDataType
 import io.github.mschache.karoopro.ui.field.StripDataType
 import io.github.mschache.karoopro.ui.field.WindDataType
@@ -29,6 +30,7 @@ class KarooProExtension : KarooExtension(EXTENSION_ID, BuildConfig.VERSION_NAME)
             CrosswindDataType(g),
             Best20DataType(g),
             StripDataType(g),
+            PanelsFieldDataType(g),
         )
     }
 
@@ -44,8 +46,8 @@ class KarooProExtension : KarooExtension(EXTENSION_ID, BuildConfig.VERSION_NAME)
 
     override fun onBonusAction(actionId: String) {
         when (actionId) {
-            ACTION_NEXT_PANEL -> graph.panels.step(1)
-            ACTION_PREVIOUS_PANEL -> graph.panels.step(-1)
+            ACTION_NEXT_PANEL -> graph.stepPanels(1)
+            ACTION_PREVIOUS_PANEL -> graph.stepPanels(-1)
             ACTION_CYCLE_METRIC -> graph.cycleBigMetric()
             ACTION_LOG_GEL -> graph.logFuel(FuelItem.GEL)
             ACTION_LOG_BAR -> graph.logFuel(FuelItem.BAR)

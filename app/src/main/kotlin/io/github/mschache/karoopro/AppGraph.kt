@@ -25,6 +25,10 @@ import io.github.mschache.karoopro.data.SettingsRepository
 import io.github.mschache.karoopro.data.WorkoutMonitor
 import io.github.mschache.karoopro.weather.WeatherRepository
 import io.hammerhead.karooext.KarooSystemService
+import io.github.mschache.karoopro.data.Panel
+import io.github.mschache.karoopro.data.PanelTargets
+import io.github.mschache.karoopro.ui.field.PanelsFieldDataType
+import io.github.mschache.karoopro.ui.field.ProFieldDataType
 import io.hammerhead.karooext.models.DataType
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -61,6 +65,37 @@ class AppGraph(context: Context) {
         hasResults = { results.results.value.isNotEmpty() },
         onFuelTap = { logFuel(settings.value.tapLogs) },
     )
+
+    /** The Panels field's own deck: the big number first, its own current slide, no Bike auto-open. */
+    val mapPanels = PanelController(
+        hub, workout, coach, settings, scope,
+        climb = { routes.climb() },
+        segment = { segments.state.value },
+        paceAvailable = { routes.current()?.profile?.isNotEmpty() == true },
+        hasResults = { results.results.value.isNotEmpty() },
+        onFuelTap = { logFuel(settings.value.tapLogs) },
+        withNumber = true,
+        openBike = false,
+    )
+
+    /** Redraw both KarooPro fields now. */
+    fun invalidateFields() {
+        panels.invalidate()
+        mapPanels.invalidate()
+    }
+
+    /** A tap on the Panels field: the middle of the big number switches it, everything else as on the full field. */
+    fun panelsTap(direction: Int) {
+        if (direction == 0 && mapPanels.shown() == Panel.NUMBER) cycleBigMetric() else mapPanels.tap(direction)
+    }
+
+    /** The next / previous panel bonus actions: whichever KarooPro field is on screen flips. */
+    fun stepPanels(direction: Int) {
+        val ids = hub.activePage.value?.elements?.map { it.dataTypeId }.orEmpty()
+        val decks = PanelTargets.forPage(ids, DataType.dataTypeId(EXTENSION_ID, ProFieldDataType.TYPE_ID), DataType.dataTypeId(EXTENSION_ID, PanelsFieldDataType.TYPE_ID))
+        if (PanelTargets.FULL in decks) panels.step(direction)
+        if (PanelTargets.PANELS in decks) mapPanels.step(direction)
+    }
     val fit = FitWriter(hub, recorder, weather, scope)
     val mapLayers = io.github.mschache.karoopro.map.MapLayers(
         hub, routes, settings, scope, io.github.mschache.karoopro.map.MapLayerMemory(java.io.File(app.filesDir, "map-layers.txt")),
@@ -83,7 +118,7 @@ class AppGraph(context: Context) {
     /** The rider ate or drank [item] (a tap on the Fuel panel or a bonus action). */
     fun logFuel(item: FuelItem) {
         recorder.logFuel(item)
-        panels.invalidate()
+        invalidateFields()
     }
 
     /** True when the visible ride page has a KarooPro field on it. */
@@ -100,7 +135,7 @@ class AppGraph(context: Context) {
                 val next = cycle[(cycle.indexOf(s.shownBigMetric(hasPower)) + 1) % cycle.size]
                 if (next in s.bigMetrics) s.copy(bigMetric = next) else s
             }
-            panels.invalidate()
+            invalidateFields()
         }
     }
 
@@ -114,6 +149,7 @@ class AppGraph(context: Context) {
         gears.start()
         results.start()
         panels.start()
+        mapPanels.start()
         hub.registerComputed(Metric.PACE_TARGET) { pace.state()?.target?.toDouble() }
         hub.registerComputed(Metric.PACE_AHEAD) { pace.state()?.aheadS?.times(1000) }
         scope.launch {
@@ -122,6 +158,7 @@ class AppGraph(context: Context) {
                 alerts.beep(Beep.FUEL)
                 if (fieldVisible()) {
                     panels.fuelReminder()
+                    mapPanels.fuelReminder()
                 } else {
                     val (title, detail) = when (due) {
                         FuelDue.EAT -> "Eat" to "About ${s.gelCarbs} g carbs"

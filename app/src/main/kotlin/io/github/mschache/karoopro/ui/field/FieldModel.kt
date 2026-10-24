@@ -233,6 +233,50 @@ data class CoachContent(
     val hint: String,
 ) : PanelContent
 
+/** The big number as a slide; it's drawn from [FieldModel.hero], so it carries nothing itself. */
+data object NumberContent : PanelContent
+
+/**
+ * The Panels field: one slide condensed for a short, wide slot such as the map page. Every panel
+ * becomes a few labeled values ([CompactCells]); the big number and coach messages keep their own
+ * look.
+ */
+data class CompactModel(
+    val palette: Palette,
+    val density: Float,
+    val panels: List<Panel>,
+    val panel: Panel,
+    /** "RIDE", "CLIMB 2/5", or the big number's name. */
+    val title: String,
+    val body: CompactBody,
+    /** The zone tint on the big number's slide, else the page color. */
+    val background: Int,
+    val interactive: Boolean,
+)
+
+sealed interface CompactBody
+
+data class CompactNumber(val hero: HeroModel) : CompactBody
+
+/** Values side by side (two rows when the slot is tall), an optional bar under them, or just a [message]. */
+data class CompactCells(
+    val cells: List<StripCell>,
+    /** 0..1 progress (W′ left, through the step, climb or segment), drawn as a thin bar. */
+    val bar: Float? = null,
+    val barColor: Int = 0,
+    val message: String? = null,
+) : CompactBody
+
+data class CompactText(
+    val status: String,
+    val warning: Boolean,
+    val age: String,
+    val text: String,
+    val placeholder: Boolean,
+    val unread: Boolean,
+    val hint: String,
+) : CompactBody
+
 sealed interface OverlayModel {
     val full: Boolean
 

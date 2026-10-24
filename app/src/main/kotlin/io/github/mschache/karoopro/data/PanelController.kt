@@ -15,9 +15,28 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
+/** The two KarooPro fields with panels, as the next / previous panel bonus actions see them. */
+enum class PanelTargets {
+    FULL,
+    PANELS,
+    ;
+
+    companion object {
+        /**
+         * The decks to flip for the field ids on the visible page: each KarooPro field there, or the
+         * full field when neither is (the actions predate the Panels field).
+         */
+        fun forPage(pageIds: List<String>, fullId: String, panelsId: String): Set<PanelTargets> {
+            val on = setOfNotNull(FULL.takeIf { fullId in pageIds }, PANELS.takeIf { panelsId in pageIds })
+            return on.ifEmpty { setOf(FULL) }
+        }
+    }
+}
+
 /**
- * Which panel the field shows. Shared by every KarooPro field instance; flipped by taps and bonus
- * actions, and switched automatically when a workout starts, Di2/AXS shifting appears or a coach
+ * Which panel a field shows: one controller for the full KarooPro field, another for the Panels
+ * field, so each keeps its own slide. The Panels field's deck starts with the big number
+ * ([withNumber]). Flipped by taps and bonus actions, and switched automatically when a workout starts, Di2/AXS shifting appears or a coach
  * message arrives. During a workout, a Coach panel that opened by itself goes back after 20 s
  * without a tap, so coach messages never hide the target for long. The Climb panel opens just
  * before each climb on a navigated route and the Segment panel for a Strava Live Segment; both give
@@ -39,8 +58,12 @@ class PanelController(
     private val hasResults: () -> Boolean = { false },
     /** A tap in the middle of the Fuel panel logs what the rider ate. */
     private val onFuelTap: () -> Unit = {},
+    /** The deck starts with the big number as a slide (the Panels field). */
+    private val withNumber: Boolean = false,
+    /** Open the Bike panel when shifting appears; the Panels field keeps its slide instead. */
+    private val openBike: Boolean = true,
 ) {
-    private val _current = MutableStateFlow(Panel.RIDE)
+    private val _current = MutableStateFlow(if (withNumber) Panel.NUMBER else Panel.RIDE)
     val current: StateFlow<Panel> = _current
 
     private val _invalidations = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
@@ -105,18 +128,21 @@ class PanelController(
     }
 
     fun visiblePanels(s: Settings = settings.value): List<Panel> =
-        s.orderedPanels.filter { it.enabled }.map { it.panel }.filter {
-            demoMode || when (it) {
-                Panel.WORKOUT -> workout.active
-                Panel.BIKE -> shiftingAvailable
-                Panel.COACH -> coach.available
-                Panel.CLIMB -> climbAhead
-                Panel.SEGMENT -> segmentNear
-                Panel.PACE -> paceAvailable()
-                Panel.RESULTS -> hasResults()
-                else -> true
-            }
-        }.ifEmpty { listOf(Panel.RIDE) }
+        deck(
+            s.orderedPanels.filter { it.enabled }.map { it.panel }.filter {
+                demoMode || when (it) {
+                    Panel.WORKOUT -> workout.active
+                    Panel.BIKE -> shiftingAvailable
+                    Panel.COACH -> coach.available
+                    Panel.CLIMB -> climbAhead
+                    Panel.SEGMENT -> segmentNear
+                    Panel.PACE -> paceAvailable()
+                    Panel.RESULTS -> hasResults()
+                    else -> true
+                }
+            },
+            withNumber,
+        )
 
     /** The panel to draw: the selected one if visible, else the first visible one. */
     fun shown(): Panel {
@@ -198,7 +224,7 @@ class PanelController(
                 val enabled = s.orderedPanels.filter { it.enabled }.map { it.panel }
                 val isWorkout = workout.active
                 if (isWorkout && !wasWorkout && s.autoOpenWorkout && Panel.WORKOUT in enabled) show(Panel.WORKOUT)
-                if (shiftingAvailable && !wasShifting && !isWorkout && s.autoOpenBike && Panel.BIKE in enabled) show(Panel.BIKE)
+                if (openBike && shiftingAvailable && !wasShifting && !isWorkout && s.autoOpenBike && Panel.BIKE in enabled) show(Panel.BIKE)
                 // Climbs open 200 m before they start and close at the top; segments for as long as they're near.
                 climbPanel.tick(c != null && c.toStart <= CLIMB_OPEN_BEFORE_M, !isWorkout && s.autoOpenClimb && Panel.CLIMB in enabled)
                 segmentPanel.tick(segmentNear, !isWorkout && s.autoOpenSegment && Panel.SEGMENT in enabled)
@@ -217,9 +243,13 @@ class PanelController(
         }
     }
 
-    private companion object {
-        const val COACH_RETURN_MS = 20_000L
-        const val CLIMB_OPEN_BEFORE_M = 200.0
-        const val FUEL_SHOW_MS = 20_000L
+    companion object {
+        /** The slides a field flips through: the big number first on the Panels field, else Ride when nothing else is on. */
+        fun deck(panels: List<Panel>, withNumber: Boolean): List<Panel> =
+            if (withNumber) listOf(Panel.NUMBER) + panels.filter { it != Panel.NUMBER } else panels.ifEmpty { listOf(Panel.RIDE) }
+
+        private const val COACH_RETURN_MS = 20_000L
+        private const val CLIMB_OPEN_BEFORE_M = 200.0
+        private const val FUEL_SHOW_MS = 20_000L
     }
 }

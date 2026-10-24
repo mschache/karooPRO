@@ -18,6 +18,15 @@ enum class Panel(val title: String) {
     WORKOUT("WORKOUT"),
     BIKE("BIKE"),
     COACH("COACH"),
+
+    /** The big number as a slide of its own: only on the Panels field, never in settings or on the full field. */
+    NUMBER("NUMBER"),
+    ;
+
+    companion object {
+        /** The real panels, in their default order: everything the rider can show, hide and reorder. */
+        val PANELS: List<Panel> = entries.filter { it != NUMBER }
+    }
 }
 
 /**
@@ -50,7 +59,7 @@ data class PanelSetting(val panel: Panel, val enabled: Boolean = true)
 
 @Serializable
 data class Settings(
-    val panels: List<PanelSetting> = Panel.entries.map { PanelSetting(it) },
+    val panels: List<PanelSetting> = Panel.PANELS.map { PanelSetting(it) },
     val autoOpenWorkout: Boolean = true,
     val autoOpenBike: Boolean = true,
     /** Open the Coach panel when a KarooCoach message arrives. */
@@ -102,7 +111,8 @@ data class Settings(
 ) {
     /** Panel order with any panels added in a newer version appended. */
     val orderedPanels: List<PanelSetting>
-        get() = panels.distinctBy { it.panel } + Panel.entries.filter { p -> panels.none { it.panel == p } }.map { PanelSetting(it) }
+        get() = panels.filter { it.panel != Panel.NUMBER }.distinctBy { it.panel } +
+            Panel.PANELS.filter { p -> panels.none { it.panel == p } }.map { PanelSetting(it) }
 
     fun normalized(): Settings {
         val cycle = BigMetric.entries.filter { it in bigMetrics }.ifEmpty { Settings().bigMetrics }

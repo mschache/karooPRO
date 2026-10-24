@@ -423,6 +423,8 @@ class FieldPainter(context: Context) {
             is WorkoutContent -> workout(c, m, content, r)
             is BikeContent -> bike(c, m, content, r)
             is CoachContent -> coach(c, m, content, r)
+            // The full field never shows the big number as a panel: its hero already does.
+            NumberContent -> Unit
             is ClimbContent -> climb(c, m, content, r)
             is SegmentContent -> segment(c, m, content, r)
             is ResultsContent -> results(c, m, content, r)
@@ -1014,6 +1016,116 @@ class FieldPainter(context: Context) {
             label(c, line, r.left, y, cap, color, maxWidth = r.width())
             y += cap * TextFit.LINE_PITCH
         }
+    }
+
+    // ---------------------------------------------------------------- Panels field
+
+    /**
+     * The Panels field: a title line with the page dots, then the slide condensed to the slot. Short
+     * slots like the map page's get one row of values; taller ones two.
+     */
+    fun paintCompact(m: CompactModel, w: Int, h: Int): Bitmap {
+        val bmp = Bitmap.createBitmap(max(1, w), max(1, h), Bitmap.Config.RGB_565)
+        val c = Canvas(bmp)
+        c.drawColor(m.background)
+        // On the big number's slide everything sits on the hero's colors (tinted or filled).
+        val hero = (m.body as? CompactNumber)?.hero
+        val p = if (hero != null) m.palette.copy(text = hero.textColor, dim = hero.dimColor) else m.palette
+        val pad = min(w, h) * 0.06f
+        val titleH = (h * 0.15f).coerceIn(m.density * 9f, m.density * 15f)
+        val titleR = RectF(pad, pad * 0.5f, w - pad, pad * 0.5f + titleH)
+        compactTitle(c, m, p, titleR)
+        val body = RectF(pad, titleR.bottom + pad * 0.5f, w - pad, h - pad * 0.6f)
+        when (val b = m.body) {
+            is CompactNumber -> compactNumber(c, m, p, b.hero, body)
+            is CompactCells -> compactCells(c, m, p, b, body)
+            is CompactText -> compactText(c, m, p, b, body)
+        }
+        return bmp
+    }
+
+    private fun compactTitle(c: Canvas, m: CompactModel, p: Palette, r: RectF) {
+        val cap = r.height() * 0.62f
+        val top = r.top + (r.height() - cap) / 2
+        val n = m.panels.size
+        val cur = m.panels.indexOf(m.panel)
+        val dotsW = if (n > MAX_DOTS) {
+            label(c, "${cur + 1}/$n", r.right, top, cap, p.dim, Paint.Align.RIGHT, face = medium)
+        } else {
+            val dotR = r.height() * 0.15f
+            val step = dotR * 3.2f
+            for (i in 0 until n) {
+                val cx = r.right - dotR * 1.25f - (n - 1 - i) * step
+                c.drawCircle(cx, r.centerY(), if (i == cur) dotR * 1.25f else dotR, fill(if (i == cur) m.palette.accent else m.palette.faint))
+            }
+            step * n
+        }
+        label(c, m.title, r.left, top, cap, p.dim, maxWidth = r.width() - dotsW - r.height(), face = medium)
+    }
+
+    /** The big number with its unit, and the zone and the other two numbers beside it when there's room. */
+    private fun compactNumber(c: Canvas, m: CompactModel, p: Palette, hero: HeroModel, r: RectF) {
+        val sideW = r.width() * 0.32f
+        val gap = r.width() * 0.03f
+        number(c, hero.value, hero.unit, RectF(r.left, r.top, r.right - sideW - gap, r.bottom), hero.numberColor, hero.dimColor, inkFraction = 0.88f, unitScale = 0.24f)
+        val side = RectF(r.right - sideW, r.top, r.right, r.bottom)
+        val cards = hero.cards.take(if (r.height() > m.density * 48) 2 else 1)
+        val parts = splitV(side, *(listOf(0.32f) + cards.map { 0.68f / cards.size.coerceAtLeast(1) }).toFloatArray(), gap = r.height() * 0.06f)
+        val badge = parts[0]
+        val badgeBg = hero.zoneColor ?: m.palette.faint
+        val badgeR = RectF(badge.left, badge.top, badge.left + min(badge.width(), badge.height() * 2.4f), badge.bottom)
+        c.drawRoundRect(badgeR, m.density * CHIP_CORNER_DP, m.density * CHIP_CORNER_DP, fill(badgeBg))
+        number(c, hero.zone?.let { "Z$it" } ?: "Z-", "", badgeR, ZoneColors.onColor(badgeBg), 0, 0.6f, Paint.Align.CENTER)
+        cards.forEachIndexed { i, card -> stat(c, p, Stat(card.label, card.value, card.unit, card.accent), parts[i + 1]) }
+    }
+
+    /** A panel's values side by side, wrapping into a second row on a tall slot, with its bar below. */
+    private fun compactCells(c: Canvas, m: CompactModel, p: Palette, b: CompactCells, r: RectF) {
+        b.message?.let { text ->
+            val cap = min(r.height() * 0.3f, r.width() * 0.045f)
+            label(c, text, r.centerX(), r.centerY() - cap / 2, cap, p.dim, Paint.Align.CENTER, r.width(), medium)
+            return
+        }
+        if (b.cells.isEmpty()) return
+        var area = r
+        b.bar?.let { fraction ->
+            val barH = max(3f, r.height() * 0.07f)
+            progress(c, fraction, RectF(r.left, r.bottom - barH, r.right, r.bottom), b.barColor, m.palette.faint)
+            area = RectF(r.left, r.top, r.right, r.bottom - barH * 2.2f)
+        }
+        val layout = CompactLayout.of(b.cells.size, area.width() / m.density, area.height() / m.density)
+        val gap = area.width() * 0.02f
+        val rowRects = if (layout.rows == 1) listOf(area) else splitV(area, 1f, 1f, gap = area.height() * 0.08f)
+        b.cells.take(layout.cols * layout.rows).forEachIndexed { i, cell ->
+            val cr = row(rowRects[i / layout.cols], layout.cols, gap)[i % layout.cols]
+            stat(c, p, Stat(cell.label, cell.value, cell.unit, cell.color), cr)
+            if (i % layout.cols != layout.cols - 1) {
+                c.drawLine(cr.right + gap / 2, cr.top + cr.height() * 0.1f, cr.right + gap / 2, cr.bottom - cr.height() * 0.1f, stroke(m.palette.faint, max(1f, m.density * 0.6f)))
+            }
+        }
+    }
+
+    /** A coach message as large as it fits, with its status above and the confirm hint while unread. */
+    private fun compactText(c: Canvas, m: CompactModel, p: Palette, t: CompactText, r: RectF) {
+        val tall = r.height() > m.density * 40
+        val (statusR, textR) = if (tall) splitV(r, 0.24f, 0.76f, gap = r.height() * 0.04f) else listOf(RectF(r.left, r.top, r.right, r.top), r)
+        if (tall) {
+            val cap = statusR.height() * 0.7f
+            val top = statusR.top + (statusR.height() - cap) / 2
+            val color = if (t.warning) m.palette.warn else m.palette.good
+            val dot = cap * 0.36f
+            c.drawCircle(statusR.left + dot, top + cap / 2, dot, fill(color))
+            val hintW = label(c, if (t.unread) t.hint else t.age, statusR.right, top, cap, if (t.unread) m.palette.accent else p.dim, Paint.Align.RIGHT, face = medium)
+            label(c, t.status, statusR.left + dot * 3f, top, cap, color, maxWidth = statusR.width() - dot * 3f - hintW - statusR.height())
+        }
+        var body = textR
+        if (t.unread) {
+            val barW = max(3f, m.density * 2f)
+            c.drawRect(RectF(textR.left, textR.top, textR.left + barW, textR.bottom), fill(m.palette.accent))
+            body = RectF(textR.left + barW * 3f, textR.top, textR.right, textR.bottom)
+        }
+        val color = if (t.placeholder || !t.unread) p.dim else p.text
+        paragraph(c, t.text, body, color, maxCap = body.height() * if (t.placeholder) 0.22f else 0.42f, minCap = body.height() * 0.16f)
     }
 
     // ---------------------------------------------------------------- overlay
