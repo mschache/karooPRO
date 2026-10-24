@@ -58,10 +58,10 @@ import kotlinx.coroutines.launch
 fun HomeScreen(open: (Screen) -> Unit) {
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         // The wordmark in the field's own typeface.
-        Text("KarooPro", fontSize = 34.sp, fontFamily = Oswald, color = MaterialTheme.colorScheme.primary)
+        Text("Pangu Dash", fontSize = 34.sp, fontFamily = Oswald, color = MaterialTheme.colorScheme.primary)
         Text("Ride by effort", fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground)
         Text(
-            "Add a one-field ride page and choose KarooPro. Tap the top to switch numbers, the sides to flip\u00A0panels.",
+            "Add a one-field ride page and choose Pangu Dash. Tap the top to switch numbers, the sides to flip\u00A0panels.",
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
         )
@@ -77,12 +77,12 @@ private val Oswald = FontFamily(Font(R.font.oswald_bold, FontWeight.Bold))
 fun AboutScreen() {
     Column(Modifier.fillMaxSize().padding(12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val c = MaterialTheme.colorScheme.onBackground
-        Text("KarooPro ${BuildConfig.VERSION_NAME}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = c)
+        Text("Pangu Dash ${BuildConfig.VERSION_NAME}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = c)
         Text("Free and open source (Apache-2.0): github.com/mschache/karooPRO", color = c, fontSize = 13.sp)
         Text("Weather data by Open-Meteo.com (CC BY 4.0).", color = c, fontSize = 13.sp)
         Text("Zone colors follow the Karoo palette as sampled by the open-source BigNum extension.", color = c, fontSize = 13.sp)
         Text(
-            "The Karoo only shares the running workout step, so the next step's target appears when it starts, or already during the countdown when KarooCoach has the plan. The countdown is exact.",
+            "The Karoo only shares the running workout step, so the next step's target appears when it starts, or already during the countdown when Pangu Coach has the plan. The countdown is exact.",
             color = c.copy(alpha = 0.7f),
             fontSize = 12.sp,
         )
@@ -125,9 +125,9 @@ fun SettingsScreen() {
         val coach by context.graph.coach.state.collectAsState()
         Text(
             when {
-                coach == null -> "Coach shows messages from the KarooCoach extension once it's installed."
-                coach?.configured != true -> "KarooCoach is installed but not set up yet."
-                else -> "KarooCoach is set up. With Coach on, rides with KarooPro check in with your coach and new messages open here instead of a pop-up."
+                coach == null -> "Coach shows messages from the Pangu Coach extension once it's installed."
+                coach?.configured != true -> "Pangu Coach is installed but not set up yet."
+                else -> "Pangu Coach is set up. With Coach on, rides with Pangu Dash check in with your coach and new messages open here instead of a pop-up."
             },
             Modifier.padding(vertical = 4.dp),
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
@@ -152,7 +152,7 @@ fun SettingsScreen() {
             Choice(settings.bigMetrics, settings.bigMetric, { it.label }) { v -> update { it.copy(bigMetric = v) } }
         }
         Text(
-            "Power-based numbers need a power meter; without one KarooPro starts on speed.",
+            "Power-based numbers need a power meter; without one Pangu Dash starts on speed.",
             Modifier.padding(vertical = 4.dp),
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
             fontSize = 12.sp,
@@ -220,7 +220,7 @@ fun SettingsScreen() {
         Choice(AlertStyle.entries, settings.alertStyle, { it.label }) { v -> update { it.copy(alertStyle = v) } }
         Toggle("Beep 10 s before and at each new step", settings.alertBeep) { v -> update { it.copy(alertBeep = v) } }
         Toggle("Countdown beeps 5-4-3-2-1", settings.countdownBeeps) { v -> update { it.copy(countdownBeeps = v) } }
-        Toggle("Karoo pop-up on pages without KarooPro", settings.systemAlert) { v -> update { it.copy(systemAlert = v) } }
+        Toggle("Karoo pop-up on pages without Pangu Dash", settings.systemAlert) { v -> update { it.copy(systemAlert = v) } }
 
         Section("Bike")
         Toggle("Beep at the smallest and largest cog (Di2/AXS)", settings.gearLimitBeep) { v -> update { it.copy(gearLimitBeep = v) } }
@@ -267,7 +267,7 @@ fun SettingsScreen() {
         Text("Riding position (for the speed model)", Modifier.padding(top = 4.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 12.sp)
         Choice(POSITIONS, POSITIONS.minBy { kotlin.math.abs(it.second - settings.cda) }, { it.first }) { v -> update { it.copy(cda = v.second) } }
 
-        Section("PRO Strip field")
+        Section("Dash Strip field")
         settings.stripMetrics.forEachIndexed { i, m ->
             PickRow("Value ${i + 1}", m.label) {
                 picker = Picker("Strip value ${i + 1}", Metric.selectableEntries.map { it.label }) { idx ->

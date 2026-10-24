@@ -469,7 +469,7 @@ object FieldModelBuilder {
     }
 
     /**
-     * The PRO Strip: the chosen values, with the segment gap, the workout target and the distance to
+     * The Dash Strip: the chosen values, with the segment gap, the workout target and the distance to
      * the top taking the first places while they matter (unless switched off).
      */
     fun strip(src: RideSource, systemDark: Boolean): StripModel {
@@ -706,7 +706,7 @@ object FieldModelBuilder {
     }
 
     private fun coach(src: RideSource): CoachContent {
-        val info = src.coach ?: return CoachContent("NOT INSTALLED", true, "", null, "Install KarooCoach to get messages from your coach here", true, false, "")
+        val info = src.coach ?: return CoachContent("NOT INSTALLED", true, "", null, "Install Pangu Coach to get messages from your coach here", true, false, "")
         val now = src.nowMs
         val status = CoachStatus.of(info, now)
         val m = info.message
@@ -715,7 +715,7 @@ object FieldModelBuilder {
             warning = status.warning,
             age = m?.let { CoachText.ago(now - it.receivedAt) }.orEmpty(),
             title = m?.title?.takeUnless { it.equals("Coach", ignoreCase = true) }?.uppercase(),
-            text = m?.text ?: if (info.configured) "Messages from your coach appear here" else "Set up KarooCoach from your computer, see its README",
+            text = m?.text ?: if (info.configured) "Messages from your coach appear here" else "Set up Pangu Coach from your computer, see its README",
             placeholder = m == null,
             unread = info.unread,
             hint = when {
@@ -730,7 +730,7 @@ object FieldModelBuilder {
         val u = src.profile.units
         val w = src.weather
         val heading = src.heading
-        if (!src.settings.weatherEnabled) return WeatherContent("Weather is off in KarooPro settings", null, Fmt.NONE, "", null, emptyList(), emptyList())
+        if (!src.settings.weatherEnabled) return WeatherContent("Weather is off in Pangu Dash settings", null, Fmt.NONE, "", null, emptyList(), emptyList())
         if (w == null) {
             val msg = when (src.weatherStatus) {
                 io.github.mschache.karoopro.weather.WeatherStatus.NO_POSITION -> "Waiting for GPS position…"

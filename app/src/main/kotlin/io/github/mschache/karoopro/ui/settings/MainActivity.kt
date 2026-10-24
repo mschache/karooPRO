@@ -102,7 +102,7 @@ class MainActivity : ComponentActivity() {
                         }
                     }
                 }
-                // The PRO Strip in a full-width and a half-width slot.
+                // The Dash Strip in a full-width and a half-width slot.
                 val strip = io.github.mschache.karoopro.ui.field.FieldModelBuilder.strip(
                     io.github.mschache.karoopro.ui.field.DemoSource(graph.settings.value, graph.hub.profile.value), systemDark = true,
                 )

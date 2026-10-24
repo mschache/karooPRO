@@ -3,7 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools">
 
     <uses-permission android:name="android.permission.INTERNET" />
-    <!-- Coach panel: read and confirm messages from the KarooCoach extension, when it's installed. -->
+    <!-- Coach panel: read and confirm messages from the Pangu Coach extension, when it's installed. -->
     <uses-permission android:name="io.github.mschache.karoocoach.permission.COACH" />
 
     <queries>

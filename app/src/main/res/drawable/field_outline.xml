@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
-    The outline KarooPro's graphical fields are clipped to: the Karoo's own field box, measured on a
+    The outline Pangu Dash's graphical fields are clipped to: the Karoo's own field box, measured on a
     Karoo 3 with Data Boundaries on (20 px corner radius at density 1.875, from inside the border).
 -->
 <shape xmlns:android="http://schemas.android.com/apk/res/android"

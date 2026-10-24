@@ -19,7 +19,7 @@ import kotlinx.coroutines.launch
  * Follows the Karoo's Strava Live Segment streams while a ride is active and the Segment panel is
  * on. The SDK doesn't document their units, signs or when they stream, so every change of their
  * stream states and field keys is logged (release builds too), and the values every 10 s while a
- * segment is near, for checking with `adb logcat -s KarooPro` after a ride.
+ * segment is near, for checking with `adb logcat -s Pangu Dash` after a ride.
  */
 class SegmentMonitor(
     private val hub: RideDataHub,

@@ -63,7 +63,7 @@ class FieldPainter(context: Context) {
     }
 
     /**
-     * The PRO Strip: cells side by side, label over value; on a tall slot they wrap into two rows
+     * The Dash Strip: cells side by side, label over value; on a tall slot they wrap into two rows
      * so the numbers stay large.
      */
     fun paintStrip(m: StripModel, width: Int, height: Int): Bitmap {

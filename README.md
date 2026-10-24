@@ -1,8 +1,8 @@
-<img src="docs/karoopro.svg" width="96" alt="KarooPro icon: the zone ladder">
+<img src="docs/karoopro.svg" width="96" alt="Pangu Dash icon: the zone ladder">
 
-# KarooPro: ride by effort on your Karoo
+# Pangu Dash: ride by effort on your Karoo
 
-KarooPro is a free, open-source extension for the **Hammerhead Karoo 3** (and Karoo 2) that puts your whole ride on one page.
+Pangu Dash is a free, open-source extension for the **Hammerhead Karoo 3** (and Karoo 2) that puts your whole ride on one page. Formerly KarooPro; part of [Pangu Lab](https://lab.pangucycling.cc).
 
 <p>
   <img src="docs/screenshot-1.png" width="240" alt="Ride panel, the top filled in the power zone color">
@@ -26,11 +26,11 @@ Below that is a panel you flip with a tap on its left or right side.
 | **Lap** | Four lap fields with ▲/▼ against the previous lap |
 | **Analysis** | Best 5 s / 1 min / 5 min / 20 min power, time in zones, NP, TSS, IF, climbing, work |
 | **Results** | Appears after your first finished climb or segment: each one with its time, average power, W/kg and VAM, or the gaps to your PR and KOM, newest first |
-| **Workout** | Opens by itself during a structured workout: step, time left, target with PUSH / EASE / IN RANGE (the color shades from green to blue or red as you drift off), step average, time in target, and the next step's target when KarooCoach knows your plan |
+| **Workout** | Opens by itself during a structured workout: step, time left, target with PUSH / EASE / IN RANGE (the color shades from green to blue or red as you drift off), step average, time in target, and the next step's target when Pangu Coach knows your plan |
 | **Bike** | Opens by itself when Di2 or AXS connects: gears, drivetrain with cross-chain warning, batteries, L/R balance, shifts, ratio. Beeps when you shift onto the smallest cog (two high blips) or the largest (two low ones) |
-| **Coach** | Appears when the [KarooCoach](#karoocoach) extension is installed and set up: your coach's latest message in big type, how old it is, and whether check-ins work. Opens by itself on a new message; tap it to confirm |
+| **Coach** | Appears when the [Pangu Coach](#karoocoach) extension is installed and set up: your coach's latest message in big type, how old it is, and whether check-ins work. Opens by itself on a new message; tap it to confirm |
 
-With no power meter, KarooPro starts on speed and colors by heart rate.
+With no power meter, Pangu Dash starts on speed and colors by heart rate.
 
 **Workout alerts:**
 - 10 seconds before a step ends you get a double beep and a countdown.
@@ -39,14 +39,14 @@ With no power meter, KarooPro starts on speed and colors by heart rate.
 - Alerts can appear as a window over the panel or across the full field, plus a Karoo pop-up when you're on another page.
 
 **Extra fields you can place anywhere:**
-- **PRO Panels:** the panels without the big top, for the map page or any short, full-width slot. The big number is the first slide, colored by zone. Each panel shrinks to a row of its key values, and Coach messages keep their own look. Tap left or right to flip, and the middle of the big number to switch it. It keeps its own slide, apart from the full KarooPro field. Workout and Coach still open by themselves there; Bike doesn't.
-- **PRO Strip:** a slim row for map and data pages with up to 6 values you choose (by default W′ balance, stamina, headwind and carb balance). The segment gap, workout target and distance to the top take the first places while they matter.
-- **PRO Wind:** a compass that turns with your heading.
-- **PRO W′ Balance:** in kJ.
-- **PRO W′ Empty In:** how long your W′ lasts at your current 3-second power. Empty while you ride at or below CP.
-- **PRO Headwind:** head (+) or tail (−) wind in your speed unit.
-- **PRO Crosswind:** crosswind from either side in your speed unit.
-- **PRO Best 20 min:** your best 20-minute power so far this ride.
+- **Dash Panels:** the panels without the big top, for the map page or any short, full-width slot. The big number is the first slide, colored by zone. Each panel shrinks to a row of its key values, and Coach messages keep their own look. Tap left or right to flip, and the middle of the big number to switch it. It keeps its own slide, apart from the full Pangu Dash field. Workout and Coach still open by themselves there; Bike doesn't.
+- **Dash Strip:** a slim row for map and data pages with up to 6 values you choose (by default W′ balance, stamina, headwind and carb balance). The segment gap, workout target and distance to the top take the first places while they matter.
+- **Wind:** a compass that turns with your heading.
+- **W′ Balance:** in kJ.
+- **W′ Empty In:** how long your W′ lasts at your current 3-second power. Empty while you ride at or below CP.
+- **Headwind:** head (+) or tail (−) wind in your speed unit.
+- **Crosswind:** crosswind from either side in your speed unit.
+- **Best 20 min:** your best 20-minute power so far this ride.
 
 **Tiles and cards** can show any of about 50 values. Besides the usual power, speed, heart rate, cadence, distance, time and climbing values, there are:
 - Power: 20-minute and 1-hour power, VI, kcal/h.
@@ -60,7 +60,7 @@ With no power meter, KarooPro starts on speed and colors by heart rate.
 - Carbs burned, eaten and the balance.
 - Pace target and time ahead of or behind the plan.
 
-**Your FIT file** gets KarooPro's own values as developer fields every second: W′ balance, carbs burned and eaten, stamina and headwind, plus the carb totals for the ride. intervals.icu shows them as extra charts.
+**Your FIT file** gets Pangu Dash's own values as developer fields every second: W′ balance, carbs burned and eaten, stamina and headwind, plus the carb totals for the ride. intervals.icu shows them as extra charts.
 
 <p>
   <img src="docs/screenshot-pace.png" width="240" alt="Pace panel with the target for this stretch">
@@ -72,24 +72,24 @@ With no power meter, KarooPro starts on speed and colors by heart rate.
 
 ## Map layers
 
-While you navigate a route, KarooPro draws on top of the Karoo's own map:
+While you navigate a route, Pangu Dash draws on top of the Karoo's own map:
 
 - **Wind on the route ahead (next 30 km):** green for tailwind, yellow for crosswind, red for headwind. Each point uses the Open-Meteo forecast for the hour you'll actually get there, based on your average speed.
 - **Climbs by grade (next 50 km):** a grey-to-black band under the route, darker for steeper: 3–6 %, 6–9 %, 9–12 %, 12 %+.
 - **Wind arrows every 5 km:** they point where the wind blows, in the same colors.
 
-Each layer can be switched off in KarooPro's settings. The layers need an active navigation with a GPS fix, and the wind needs WiFi or the Companion app.
+Each layer can be switched off in Pangu Dash's settings. The layers need an active navigation with a GPS fix, and the wind needs WiFi or the Companion app.
 
-## KarooCoach
+## Pangu Coach
 
-KarooCoach is a separate extension that lets an AI coach (Claude, from your phone) read your live ride and send you short messages. When it's installed and set up, KarooPro gets a **Coach** panel:
+Pangu Coach is a separate extension that lets an AI coach (Claude, from your phone) read your live ride and send you short messages. When it's installed and set up, Pangu Dash gets a **Coach** panel:
 
-- A new message opens the Coach panel. KarooCoach then skips its own pop-up while the KarooPro page is on screen.
+- A new message opens the Coach panel. Pangu Coach then skips its own pop-up while the Pangu Dash page is on screen.
 - Tap anywhere on the panel to confirm an unread message. The coach sees it, and the field goes back to the panel you were on.
-- With the Coach panel on, rides whose profile has the KarooPro field check in with your coach, just like rides with the Coach field.
-- Check-ins also carry what only KarooPro computes: W′ balance, your best 5 s, 1, 5 and 20 min power, head- and crosswind, and how you're riding the workout step and rode the last one. So the coach can recap intervals and warn you when W′ runs low.
+- With the Coach panel on, rides whose profile has the Pangu Dash field check in with your coach, just like rides with the Coach field.
+- Check-ins also carry what only Pangu Dash computes: W′ balance, your best 5 s, 1, 5 and 20 min power, head- and crosswind, and how you're riding the workout step and rode the last one. So the coach can recap intervals and warn you when W′ runs low.
 - During a workout, a Coach panel that opened by itself goes back to your target after 20 seconds, unless you tap it.
-- Hide the panel in Settings to turn all of this off. KarooCoach's own field and pop-ups keep working either way.
+- Hide the panel in Settings to turn all of this off. Pangu Coach's own field and pop-ups keep working either way.
 
 ## Install
 
@@ -112,39 +112,39 @@ adb install -r app-release.apk
 
 1. On the Karoo, open **Profiles** and choose or create a profile.
 2. Go to **Data pages**, add a page and remove its default field.
-3. Tap **Add field** → **KarooPro** → **KarooPro**. The field fills the page.
+3. Tap **Add field** → **Pangu Dash** → **Pangu Dash**. The field fills the page.
 
 Now ride:
 - Tap the top half to switch the big number.
 - Tap the left or right third of the lower half to change panels.
 
-For the map page, add **KarooPro** → **PRO Panels** below the map instead.
+For the map page, add **Pangu Dash** → **Dash Panels** below the map instead.
 
 You can also map these to a remote button as Karoo bonus actions:
-- **KarooPro: next panel**, **previous panel** (they flip whichever KarooPro field is on screen), **switch the big number**.
-- **KarooPro: ate a gel**, **ate a bar**, **drank a bottle**, to log fuel without looking.
+- **Pangu Dash: next panel**, **previous panel** (they flip whichever Pangu Dash field is on screen), **switch the big number**.
+- **Pangu Dash: ate a gel**, **ate a bar**, **drank a bottle**, to log fuel without looking.
 
 ## Settings
 
-Open the **KarooPro** app on the Karoo to:
+Open the **Pangu Dash** app on the Karoo to:
 - Hide or reorder panels, and choose whether Workout, Bike, Coach, Climb and Segment open by themselves.
 - Turn the gear-limit beep on or off.
 - Set your carbs (g/h) and drink (ml/h) targets, the reminders, the carbs in a gel, bar and bottle, and what a tap on the Fuel panel logs.
 - Set pacing: the target on the flat as % of FTP, your bike's weight and riding position.
-- Choose the PRO Strip's values.
+- Choose the Dash Strip's values.
 - Pick which big numbers the tap switches between and which one it starts on, the two cards under it, the zone color style (tint the page, fill the top, or color the number) and the theme.
 - Choose the 4 Ride tiles and the 4 Lap fields.
 - Set CP and W′ for W′ balance (CP defaults to your Karoo FTP; W′ to 20 kJ).
 - Set the workout alert style, beeps and the pop-up on other pages.
 - Turn weather on or off.
 
-**Preview** shows the real field with demo data, so you can check every panel without riding. **Map** there shows the PRO Panels field instead. Once KarooCoach is set up, the Coach panel there shows its real latest message.
+**Preview** shows the real field with demo data, so you can check every panel without riding. **Map** there shows the Dash Panels field instead. Once Pangu Coach is set up, the Coach panel there shows its real latest message.
 
 ## Good to know
 
-- **Next workout step.** The Karoo shares only the running workout step. The countdown to the next step is exact, but its target normally appears when the step starts. With [KarooCoach](#karoocoach) set up, and a workout from your intervals.icu plan or pushed through the coach, the Workout panel and the 10-second alert show the next step's duration and power target ahead of time (for example "NEXT 4:00 @ 280 W").
+- **Next workout step.** The Karoo shares only the running workout step. The countdown to the next step is exact, but its target normally appears when the step starts. With [Pangu Coach](#karoocoach) set up, and a workout from your intervals.icu plan or pushed through the coach, the Workout panel and the 10-second alert show the next step's duration and power target ahead of time (for example "NEXT 4:00 @ 280 W").
 - **Weather.** Weather comes from [Open-Meteo](https://open-meteo.com). It needs WiFi or the Companion app, and is fetched only while the Weather panel, a wind tile or card, or a wind field is in use: every 15 minutes, or after 3 km.
-- **Live Segments.** The Segment panel needs Strava Live Segments on the Karoo (a Strava subscription, with starred segments synced). The Karoo may also show its own segment screen; swipe back to the KarooPro page to see the panel.
+- **Live Segments.** The Segment panel needs Strava Live Segments on the Karoo (a Strava subscription, with starred segments synced). The Karoo may also show its own segment screen; swipe back to the Pangu Dash page to see the panel.
 - **Stamina, pacing and fuel are estimates.**
   - **Stamina:** comes from your FTP, CP and W′. Above CP your W′ decides how long an effort lasts; below it, a long-duration power curve does.
   - **Pacing:** assumes still air and a speed model from your weight, bike and position.
@@ -172,7 +172,7 @@ The workflow attaches `app-release.apk` and `manifest.json`, which the Karoo use
 
 ## Credits and license
 
-- **License:** KarooPro is licensed under Apache-2.0.
+- **License:** Pangu Dash is licensed under Apache-2.0.
 - **SDK:** Built on Hammerhead's [karoo-ext](https://github.com/hammerheadnav/karoo-ext) (Apache-2.0).
 - **Weather:** Data by [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
 - **Font:** Numbers (Bold) and labels (Medium) use [Oswald](https://github.com/googlefonts/OswaldFont) (SIL Open Font License 1.1, see `LICENSES/OFL-Oswald.txt`).
@@ -182,4 +182,4 @@ The workflow attaches `app-release.apk` and `manifest.json`, which the Karoo use
   - The wind math follows [Headwind](https://github.com/timklge/karoo-headwind).
   - Workout stream handling follows [Workout+](https://github.com/angkyria/karoo-workout-plus).
 
-KarooPro is not affiliated with Hammerhead or SRAM.
+Pangu Dash is not affiliated with Hammerhead or SRAM.

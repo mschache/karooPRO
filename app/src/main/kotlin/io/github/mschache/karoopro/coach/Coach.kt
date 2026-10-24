@@ -10,7 +10,7 @@ import kotlinx.serialization.json.Json
 import kotlin.math.abs
 import kotlin.math.round
 
-/** A message from KarooCoach; [receivedAt] is when the Karoo got it (epoch ms). */
+/** A message from Pangu Coach; [receivedAt] is when the Karoo got it (epoch ms). */
 data class CoachMessage(val id: String, val title: String, val text: String, val receivedAt: Long)
 
 /**
@@ -41,7 +41,7 @@ data class PlanStep(
 }
 
 /**
- * The plan KarooCoach's relay matched to the running workout (from intervals.icu or a workout
+ * The plan Pangu Coach's relay matched to the running workout (from intervals.icu or a workout
  * pushed through it): [count] steps, matched while step [index] ran, with up to three [steps] after it.
  */
 @Serializable
@@ -88,7 +88,7 @@ object PlanText {
         Fmt.seconds(step.seconds.toLong()) + (target(step)?.let { " @ $it W" } ?: " OPEN")
 }
 
-/** KarooCoach's shared state, read from its content provider (see [CoachContract]). */
+/** Pangu Coach's shared state, read from its content provider (see [CoachContract]). */
 data class CoachInfo(
     val configured: Boolean,
     /** Check-ins are running: set up, riding, and the ride profile shows the coach. */
@@ -153,7 +153,7 @@ enum class CoachStatus(val label: String, val warning: Boolean) {
     ;
 
     companion object {
-        /** Same rules as the KarooCoach field, so both show the same status. */
+        /** Same rules as the Pangu Coach field, so both show the same status. */
         fun of(info: CoachInfo, now: Long): CoachStatus = when {
             !info.configured -> NOT_SET_UP
             !info.riding -> WAITING
@@ -187,13 +187,13 @@ class CoachInbox {
     }
 
     private companion object {
-        /** Older unread messages (e.g. after KarooPro restarts) stay on the panel without opening it. */
+        /** Older unread messages (e.g. after Pangu Dash restarts) stay on the panel without opening it. */
         const val FRESH_MS = 5 * 60_000L
     }
 }
 
 /**
- * What KarooPro tells KarooCoach with [CoachContract.METHOD_EFFORT]: values only KarooPro computes,
+ * What Pangu Dash tells Pangu Coach with [CoachContract.METHOD_EFFORT]: values only Pangu Dash computes,
  * as doubles in SI units (W, J, m/s, s; workout values in the step's target unit). Unknown values
  * are left out; the W′ model's CP and W′ come only with a W′ balance.
  */
@@ -244,7 +244,7 @@ object CoachEffort {
     }
 }
 
-/** KarooCoach's side of the link; mirrors CoachContract in the karoo-mcp extension. */
+/** Pangu Coach's side of the link; mirrors CoachContract in the karoo-mcp extension. */
 object CoachContract {
     const val PACKAGE = "io.github.mschache.karoocoach"
     const val STATE_URI = "content://io.github.mschache.karoocoach.state/state"

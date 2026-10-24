@@ -15,7 +15,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 
-/** The two KarooPro fields with panels, as the next / previous panel bonus actions see them. */
+/** The two Pangu Dash fields with panels, as the next / previous panel bonus actions see them. */
 enum class PanelTargets {
     FULL,
     PANELS,
@@ -23,7 +23,7 @@ enum class PanelTargets {
 
     companion object {
         /**
-         * The decks to flip for the field ids on the visible page: each KarooPro field there, or the
+         * The decks to flip for the field ids on the visible page: each Pangu Dash field there, or the
          * full field when neither is (the actions predate the Panels field).
          */
         fun forPage(pageIds: List<String>, fullId: String, panelsId: String): Set<PanelTargets> {
@@ -34,7 +34,7 @@ enum class PanelTargets {
 }
 
 /**
- * Which panel a field shows: one controller for the full KarooPro field, another for the Panels
+ * Which panel a field shows: one controller for the full Pangu Dash field, another for the Panels
  * field, so each keeps its own slide. The Panels field's deck starts with the big number
  * ([withNumber]). Flipped by taps and bonus actions, and switched automatically when a workout starts, Di2/AXS shifting appears or a coach
  * message arrives. During a workout, a Coach panel that opened by itself goes back after 20 s

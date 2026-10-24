@@ -60,7 +60,7 @@ interface RideSource {
     /** Carbs burned, eaten and drink so far this ride. */
     val fuel: FuelSnapshot
     val workout: WorkoutState?
-    /** The planned step after the running one, when KarooCoach's relay matched the workout. */
+    /** The planned step after the running one, when Pangu Coach's relay matched the workout. */
     val workoutNext: PlanStep?
     val overlay: WorkoutOverlay?
     val weather: WeatherData?
@@ -68,7 +68,7 @@ interface RideSource {
     val heading: Double?
     val gearing: Gearing?
     val batteries: Batteries
-    /** KarooCoach's state; null when it isn't installed. */
+    /** Pangu Coach's state; null when it isn't installed. */
     val coach: CoachInfo?
     val nowMs: Long
 }
