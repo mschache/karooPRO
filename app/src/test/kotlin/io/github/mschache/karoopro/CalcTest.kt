@@ -21,7 +21,12 @@ import io.github.mschache.karoopro.calc.ZoneColors
 import io.github.mschache.karoopro.calc.ZoneKind
 import io.github.mschache.karoopro.calc.ZoneMath
 import io.github.mschache.karoopro.calc.ZoneRange
+import io.github.mschache.karoopro.calc.Fmt
+import io.github.mschache.karoopro.calc.UnitPrefs
 import io.github.mschache.karoopro.calc.bucketAverages
+import io.github.mschache.karoopro.data.BigMetric
+import io.github.mschache.karoopro.data.Metric
+import io.github.mschache.karoopro.data.Settings
 import io.github.mschache.karoopro.weather.OpenMeteo
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -335,5 +340,80 @@ class OpenMeteoTest {
         assertTrue(url.contains("latitude=47.377"))
         assertTrue(url.contains("forecast_hours=7"))
         assertTrue(url.contains("wind_speed_unit=ms"))
+    }
+}
+
+class WPrimeEmptyTest {
+    @Test fun onlyAboveCp() {
+        val w = WPrimeBalance(cp = 250.0, wPrime = 20_000.0)
+        assertNull(w.secondsToEmpty(200.0))
+        assertNull(w.secondsToEmpty(250.0))
+        assertNull(w.secondsToEmpty(null))
+        assertEquals(200.0, w.secondsToEmpty(350.0)!!, 1e-9) // 20 kJ at 100 W over CP
+    }
+
+    @Test fun usesWhatIsLeft() {
+        val w = WPrimeBalance(cp = 250.0, wPrime = 20_000.0)
+        repeat(100) { w.update(350.0) } // 10 kJ used
+        assertEquals(50.0, w.secondsToEmpty(450.0)!!, 1e-9)
+    }
+}
+
+class FormatTest {
+    private val metric = UnitPrefs()
+    private val imperial = UnitPrefs(metricDistance = false, metricElevation = false, metricTemperature = false)
+
+    @Test fun pressureFromMbar() {
+        assertEquals("4.60", Fmt.pressure(4_600.0, metric))
+        assertEquals("67", Fmt.pressure(4_600.0, imperial))
+        assertEquals(Fmt.NONE, Fmt.pressure(0.0, metric))
+    }
+
+    @Test fun clockFromMidnightOrEpoch() {
+        assertEquals("13:10", Fmt.clock(47_400_000.0))
+        assertEquals("0:05", Fmt.clock(86_400_000.0 + 300_000.0)) // past midnight wraps
+        assertEquals(Fmt.NONE, Fmt.clock(null))
+        val epoch = java.time.ZonedDateTime.of(2026, 10, 24, 18, 42, 0, 0, java.time.ZoneId.systemDefault()).toInstant().toEpochMilli()
+        assertEquals("18:42", Fmt.clock(epoch.toDouble()))
+    }
+
+    @Test fun bodyTemperatureKeepsOneDecimal() {
+        assertEquals("38.2", Metric.CORE_TEMP.format(38.2, metric))
+        assertEquals("100.8", Metric.CORE_TEMP.format(38.2, imperial))
+        assertEquals("19", Metric.TEMPERATURE.format(19.2, metric))
+    }
+}
+
+class HeroSettingsTest {
+    @Test fun cycleIsNeverEmptyAndHoldsTheBigNumber() {
+        val s = Settings(bigMetrics = emptyList(), bigMetric = BigMetric.WKG).normalized()
+        assertEquals(Settings().bigMetrics, s.bigMetrics)
+        assertEquals(BigMetric.POWER, s.bigMetric)
+        val ordered = Settings(bigMetrics = listOf(BigMetric.HR, BigMetric.POWER_10S, BigMetric.HR)).normalized()
+        assertEquals(listOf(BigMetric.HR, BigMetric.POWER_10S), ordered.bigMetrics)
+    }
+
+    @Test fun noPowerMeterSkipsPowerNumbers() {
+        val s = Settings(bigMetrics = listOf(BigMetric.POWER, BigMetric.FTP_PERCENT, BigMetric.HR), bigMetric = BigMetric.FTP_PERCENT)
+        assertEquals(listOf(BigMetric.HR), s.bigCycle(hasPower = false))
+        assertEquals(BigMetric.HR, s.shownBigMetric(hasPower = false))
+        assertEquals(BigMetric.FTP_PERCENT, s.shownBigMetric(hasPower = true))
+        assertEquals(BigMetric.SPEED, Settings(bigMetrics = listOf(BigMetric.WKG)).shownBigMetric(hasPower = false))
+    }
+
+    @Test fun automaticCards() {
+        val s = Settings()
+        assertEquals(listOf(Metric.SPEED, Metric.HEART_RATE), s.cardsFor(BigMetric.POWER))
+        assertEquals(listOf(Metric.SPEED, Metric.HEART_RATE), s.cardsFor(BigMetric.WKG))
+        assertEquals(listOf(Metric.POWER_3S, Metric.HEART_RATE), s.cardsFor(BigMetric.SPEED))
+        assertEquals(listOf(Metric.POWER_3S, Metric.SPEED), s.cardsFor(BigMetric.HR))
+    }
+
+    @Test fun chosenCardsGiveWayToTheBigNumber() {
+        val s = Settings(heroCards = listOf(Metric.SPEED, Metric.CADENCE)).normalized()
+        assertEquals(listOf(Metric.SPEED, Metric.CADENCE), s.cardsFor(BigMetric.POWER))
+        assertEquals(listOf(Metric.POWER_3S, Metric.CADENCE), s.cardsFor(BigMetric.SPEED))
+        assertNull(Settings(heroCards = listOf(Metric.SPEED)).normalized().heroCards)
+        assertFalse(Settings(heroCards = listOf(Metric.POWER_ZONE, Metric.SPEED, Metric.CADENCE)).normalized().heroCards!!.contains(Metric.POWER_ZONE))
     }
 }

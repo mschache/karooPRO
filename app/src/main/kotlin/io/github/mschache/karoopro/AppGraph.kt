@@ -7,7 +7,6 @@ import io.github.mschache.karoopro.alerts.AlertQueue
 import io.github.mschache.karoopro.coach.CoachContract
 import io.github.mschache.karoopro.coach.CoachEffort
 import io.github.mschache.karoopro.coach.CoachLink
-import io.github.mschache.karoopro.data.BigMetric
 import io.github.mschache.karoopro.data.Metric
 import io.github.mschache.karoopro.data.PanelController
 import io.github.mschache.karoopro.data.RideDataHub
@@ -66,11 +65,10 @@ class AppGraph(context: Context) {
             val hasPower = panels.demoMode ||
                 hub.isStreaming(DataType.Type.SMOOTHED_3S_AVERAGE_POWER) || hub.isStreaming(DataType.Type.POWER)
             settingsRepository.update { s ->
-                // Without a power meter POWER shows speed anyway, so skip it.
-                val shown = if (s.bigMetric == BigMetric.POWER && !hasPower) BigMetric.SPEED else s.bigMetric
-                var next = BigMetric.entries[(shown.ordinal + 1) % BigMetric.entries.size]
-                if (next == BigMetric.POWER && !hasPower) next = BigMetric.entries[(next.ordinal + 1) % BigMetric.entries.size]
-                s.copy(bigMetric = next)
+                // Without a power meter the power-based numbers show speed anyway, so skip them.
+                val cycle = s.bigCycle(hasPower)
+                val next = cycle[(cycle.indexOf(s.shownBigMetric(hasPower)) + 1) % cycle.size]
+                if (next in s.bigMetrics) s.copy(bigMetric = next) else s
             }
             panels.invalidate()
         }

@@ -76,7 +76,13 @@ class RideDataHub(val karoo: KarooSystemService, private val scope: CoroutineSco
         typeIds.toSet().forEach { id -> launch { stream(id).collect {} } }
     }
 
-    fun value(source: Source.Karoo): Double? = stream(source.typeId).value.field(source.field)
+    fun value(source: Source.Karoo): Double? {
+        val state = stream(source.typeId).value
+        val first = state.field(source.field)
+        val pair = source.pair ?: return first
+        // Left/right values: the average of the sides that report (one-sided meters send one).
+        return listOfNotNull(first, state.field(pair)).takeIf { it.isNotEmpty() }?.average()
+    }
 
     fun value(metric: Metric): Double? = when (val s = metric.source) {
         is Source.Karoo -> value(s)

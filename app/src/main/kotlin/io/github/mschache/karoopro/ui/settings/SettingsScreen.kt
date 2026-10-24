@@ -124,8 +124,50 @@ fun SettingsScreen() {
             fontSize = 12.sp,
         )
 
-        Section("Big number")
-        Choice(BigMetric.entries, settings.bigMetric, { it.label }) { v -> update { it.copy(bigMetric = v) } }
+        Section("Big number (tap it to switch)")
+        BigMetric.entries.forEach { b ->
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Checkbox(checked = b in settings.bigMetrics, onCheckedChange = { on ->
+                    update { s ->
+                        val cycle = if (on) s.bigMetrics + b else s.bigMetrics - b
+                        // Keep at least one; normalized() puts them back in the standard order.
+                        if (cycle.isEmpty()) s else s.copy(bigMetrics = cycle)
+                    }
+                })
+                Text(b.label, color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp)
+            }
+        }
+        if (settings.bigMetrics.size > 1) {
+            Text("Starts on", Modifier.padding(top = 4.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 12.sp)
+            Choice(settings.bigMetrics, settings.bigMetric, { it.label }) { v -> update { it.copy(bigMetric = v) } }
+        }
+        Text(
+            "Power-based numbers need a power meter; without one KarooPRO starts on speed.",
+            Modifier.padding(vertical = 4.dp),
+            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            fontSize = 12.sp,
+        )
+
+        Section("Cards under the big number")
+        Toggle("Choose the two cards", settings.heroCards != null) { on ->
+            update { it.copy(heroCards = if (on) listOf(Metric.SPEED, Metric.HEART_RATE) else null) }
+        }
+        settings.heroCards?.forEachIndexed { i, m ->
+            PickRow("Card ${i + 1}", m.label) {
+                picker = Picker("Card ${i + 1}", Metric.selectableEntries.map { it.label }) { idx ->
+                    val chosen = Metric.selectableEntries[idx]
+                    update { s -> s.copy(heroCards = s.heroCards?.toMutableList()?.also { it[i] = chosen }) }
+                }
+            }
+        }
+        if (settings.heroCards == null) {
+            Text(
+                "Automatic: the two of power, speed and heart rate that aren't the big number.",
+                Modifier.padding(vertical = 4.dp),
+                color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+                fontSize = 12.sp,
+            )
+        }
         Section("Zone color")
         Choice(ColorMode.entries, settings.colorMode, { it.label }) { v -> update { it.copy(colorMode = v) } }
         Section("Theme")

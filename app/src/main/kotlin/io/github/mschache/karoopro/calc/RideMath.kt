@@ -106,6 +106,12 @@ class WPrimeBalance(var cp: Double, var wPrime: Double) {
 
     val fraction: Double get() = if (wPrime > 0) balance / wPrime else 0.0
 
+    /** Seconds until the balance reaches zero holding [power]; null at or below CP. */
+    fun secondsToEmpty(power: Double?): Double? {
+        val p = power?.takeIf { it.isFinite() && it > cp && cp > 0 } ?: return null
+        return balance.coerceAtLeast(0.0) / (p - cp)
+    }
+
     fun reset() {
         balance = wPrime
     }

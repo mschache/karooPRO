@@ -13,8 +13,18 @@ enum class Panel(val title: String) {
     COACH("COACH"),
 }
 
-/** The value shown as the big number; tap the hero to cycle. */
-enum class BigMetric(val label: String) { POWER("POWER"), SPEED("SPEED"), HR("HR") }
+/**
+ * The value shown as the big number; tap the hero to cycle through [Settings.bigMetrics]. [pill] is
+ * the short name on the selector, [metric] the catalog value it shows.
+ */
+enum class BigMetric(val label: String, val pill: String, val metric: Metric, val needsPower: Boolean) {
+    POWER("POWER 3S", "POWER", Metric.POWER_3S, true),
+    SPEED("SPEED", "SPEED", Metric.SPEED, false),
+    HR("HEART RATE", "HR", Metric.HEART_RATE, false),
+    POWER_10S("POWER 10S", "10S", Metric.POWER_10S, true),
+    FTP_PERCENT("% FTP", "%FTP", Metric.FTP_PERCENT, true),
+    WKG("W/KG", "W/KG", Metric.WKG, true),
+}
 
 /** How the zone color is applied to the hero. */
 enum class ColorMode(val label: String) {
@@ -39,6 +49,10 @@ data class Settings(
     /** Open the Coach panel when a Karoo Coach message arrives. */
     val autoOpenCoach: Boolean = true,
     val bigMetric: BigMetric = BigMetric.POWER,
+    /** The big numbers a tap on the hero cycles through, in order. */
+    val bigMetrics: List<BigMetric> = listOf(BigMetric.POWER, BigMetric.SPEED, BigMetric.HR),
+    /** The two cards under the big number; null shows the two of power, speed and HR not on top. */
+    val heroCards: List<Metric>? = null,
     val colorMode: ColorMode = ColorMode.TINT,
     val theme: ThemeMode = ThemeMode.AUTO,
     val rideTiles: List<Metric> = listOf(Metric.ELAPSED_TIME, Metric.DISTANCE, Metric.CADENCE, Metric.CALORIES),
@@ -61,11 +75,43 @@ data class Settings(
     val orderedPanels: List<PanelSetting>
         get() = panels.distinctBy { it.panel } + Panel.entries.filter { p -> panels.none { it.panel == p } }.map { PanelSetting(it) }
 
-    fun normalized(): Settings = copy(
-        panels = orderedPanels,
-        rideTiles = (rideTiles + Settings().rideTiles).take(4),
-        lapFields = (lapFields + Settings().lapFields).take(4),
-        wPrimeJoules = wPrimeJoules.coerceIn(1_000, 100_000),
-        criticalPower = criticalPower?.takeIf { it in 50..1000 },
-    )
+    fun normalized(): Settings {
+        val cycle = BigMetric.entries.filter { it in bigMetrics }.ifEmpty { Settings().bigMetrics }
+        return copy(
+            panels = orderedPanels,
+            bigMetrics = cycle,
+            bigMetric = bigMetric.takeIf { it in cycle } ?: cycle.first(),
+            heroCards = heroCards?.filter { it.selectable }?.takeIf { it.size >= 2 }?.take(2),
+            rideTiles = (rideTiles + Settings().rideTiles).take(4),
+            lapFields = (lapFields + Settings().lapFields).take(4),
+            wPrimeJoules = wPrimeJoules.coerceIn(1_000, 100_000),
+            criticalPower = criticalPower?.takeIf { it in 50..1000 },
+        )
+    }
+
+    /** The big numbers the tap cycles through now: power-based ones need a power meter. */
+    fun bigCycle(hasPower: Boolean): List<BigMetric> =
+        bigMetrics.filter { hasPower || !it.needsPower }.ifEmpty { listOf(BigMetric.SPEED) }
+
+    /**
+     * The two cards under the big number [big]. By default the two of power, speed and HR not on top;
+     * a chosen card that repeats the big number gives way to the next of those.
+     */
+    fun cardsFor(big: BigMetric): List<Metric> {
+        val fallback = listOf(Metric.POWER_3S, Metric.SPEED, Metric.HEART_RATE)
+        val onTop = if (big.needsPower) Metric.POWER_3S else big.metric
+        val chosen = heroCards ?: return fallback.filter { it != onTop }
+        fun repeats(m: Metric) = m == big.metric || (big == BigMetric.POWER && m == Metric.POWER)
+        val out = ArrayList<Metric>()
+        for (m in chosen) {
+            out += if (!repeats(m)) m else fallback.firstOrNull { it != onTop && it !in chosen && it !in out } ?: m
+        }
+        return out
+    }
+
+    /** The big number on screen: the chosen one, or speed (else the first left) when it needs a missing power meter. */
+    fun shownBigMetric(hasPower: Boolean): BigMetric {
+        val cycle = bigCycle(hasPower)
+        return bigMetric.takeIf { it in cycle } ?: BigMetric.SPEED.takeIf { it in cycle } ?: cycle.first()
+    }
 }

@@ -69,6 +69,8 @@ object FieldModelBuilder {
             Metric.POWER, Metric.POWER_3S, Metric.SPEED, Metric.HEART_RATE, Metric.AVG_POWER,
             Metric.AVG_SPEED, Metric.MAX_SPEED, Metric.AVG_HR, Metric.HR_PERCENT_MAX,
         ).mapNotNullTo(this) { it.karoo?.typeId }
+        s.bigMetrics.mapNotNullTo(this) { it.metric.karoo?.typeId }
+        s.heroCards?.mapNotNullTo(this) { it.karoo?.typeId }
         when (panel) {
             Panel.RIDE -> s.rideTiles.mapNotNullTo(this) { it.karoo?.typeId }
             Panel.EFFORT -> {
@@ -98,14 +100,18 @@ object FieldModelBuilder {
         val profile = src.profile
         val u = profile.units
         val power = src.value(Metric.POWER_3S) ?: src.value(Metric.POWER)
+        val power10 = src.value(Metric.POWER_10S)
         val speed = src.value(Metric.SPEED)
         val hr = src.value(Metric.HEART_RATE)
+        val ftp = profile.ftp.coerceAtLeast(1)
+        val avgPower = src.value(Metric.AVG_POWER)
         // No power meter: start on speed, colored by heart rate.
-        val big = if (s.bigMetric == BigMetric.POWER && !src.powerAvailable) BigMetric.SPEED else s.bigMetric
+        val big = s.shownBigMetric(src.powerAvailable)
         val powerZone = ZoneMath.zoneOf(power, profile.powerZones)
         val hrZone = ZoneMath.zoneOf(hr, profile.hrZones)
         val (zone, kind) = when (big) {
-            BigMetric.POWER -> powerZone to ZoneKind.POWER
+            BigMetric.POWER, BigMetric.FTP_PERCENT, BigMetric.WKG -> powerZone to ZoneKind.POWER
+            BigMetric.POWER_10S -> ZoneMath.zoneOf(power10, profile.powerZones) to ZoneKind.POWER
             BigMetric.SPEED -> if (src.powerAvailable) powerZone to ZoneKind.POWER else hrZone to ZoneKind.HR
             BigMetric.HR -> hrZone to ZoneKind.HR
         }
@@ -114,16 +120,32 @@ object FieldModelBuilder {
         val zoneColors = (1..zoneCount).map { ZoneColors.color(kind, it, zoneCount) }
         fun powerColor() = powerZone?.let { ZoneColors.color(ZoneKind.POWER, it, profile.powerZones.size) }
         fun hrColor() = hrZone?.let { ZoneColors.color(ZoneKind.HR, it, profile.hrZones.size) }
+        fun perKg(w: Double?) = w?.let { v -> profile.weightKg.takeIf { it > 0 }?.let { v / it } }
 
         val (value, unit) = when (big) {
             BigMetric.POWER -> Fmt.int(power) to "W"
+            BigMetric.POWER_10S -> Fmt.int(power10) to "W"
+            BigMetric.FTP_PERCENT -> Fmt.int(power?.let { it * 100 / ftp }) to "%"
+            BigMetric.WKG -> Fmt.decimal(perKg(power), 1) to "W/kg"
             BigMetric.SPEED -> Fmt.speed(speed, u) to Fmt.speedUnit(u)
             BigMetric.HR -> Fmt.int(hr) to "bpm"
         }
         val stats = when (big) {
             BigMetric.POWER -> listOf(
-                Stat("FTP", Fmt.int(power?.let { it * 100 / profile.ftp.coerceAtLeast(1) }), "%"),
-                Stat("AVG", Fmt.int(src.value(Metric.AVG_POWER)), "W"),
+                Stat("FTP", Fmt.int(power?.let { it * 100 / ftp }), "%"),
+                Stat("AVG", Fmt.int(avgPower), "W"),
+            )
+            BigMetric.POWER_10S -> listOf(
+                Stat("FTP", Fmt.int(power10?.let { it * 100 / ftp }), "%"),
+                Stat("AVG", Fmt.int(avgPower), "W"),
+            )
+            BigMetric.FTP_PERCENT -> listOf(
+                Stat("3S", Fmt.int(power), "W"),
+                Stat("AVG", Fmt.int(avgPower?.let { it * 100 / ftp }), "%"),
+            )
+            BigMetric.WKG -> listOf(
+                Stat("3S", Fmt.int(power), "W"),
+                Stat("AVG", Fmt.decimal(perKg(avgPower), 1)),
             )
             BigMetric.SPEED -> listOf(
                 Stat("AVG", Fmt.speed(src.value(Metric.AVG_SPEED), u)),
@@ -134,11 +156,19 @@ object FieldModelBuilder {
                 Stat("AVG", Fmt.int(src.value(Metric.AVG_HR)), "bpm"),
             )
         }
-        val cards = BigMetric.entries.filter { it != big }.map { other ->
-            when (other) {
-                BigMetric.POWER -> CardModel("POWER", Fmt.int(power), "W", Fmt.int(src.value(Metric.AVG_POWER)), powerColor())
-                BigMetric.SPEED -> CardModel("SPEED", Fmt.speed(speed, u), Fmt.speedUnit(u), Fmt.speed(src.value(Metric.AVG_SPEED), u), null)
-                BigMetric.HR -> CardModel("HEART", Fmt.int(hr), "bpm", Fmt.int(src.value(Metric.AVG_HR)), hrColor())
+        val cards = s.cardsFor(big).map { m ->
+            when (m) {
+                Metric.POWER_3S -> CardModel("POWER", Fmt.int(power), "W", Fmt.int(avgPower), powerColor())
+                Metric.SPEED -> CardModel("SPEED", Fmt.speed(speed, u), Fmt.speedUnit(u), Fmt.speed(src.value(Metric.AVG_SPEED), u), null)
+                Metric.HEART_RATE -> CardModel("HEART", Fmt.int(hr), "bpm", Fmt.int(src.value(Metric.AVG_HR)), hrColor())
+                else -> CardModel(
+                    m.label, m.format(src.value(m), u), m.unit(u), null,
+                    when (m.graph) {
+                        Metric.POWER_3S -> powerColor()
+                        Metric.HEART_RATE -> hrColor()
+                        else -> null
+                    },
+                )
             }
         }
 
@@ -164,7 +194,7 @@ object FieldModelBuilder {
         }
         return HeroModel(
             big = big,
-            options = BigMetric.entries,
+            options = s.bigCycle(src.powerAvailable),
             value = value,
             unit = unit,
             zone = zone,

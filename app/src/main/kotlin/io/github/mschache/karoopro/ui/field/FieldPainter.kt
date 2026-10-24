@@ -200,10 +200,11 @@ class FieldPainter(context: Context) {
             val bg = if (selected) (h.zoneColor ?: p.accent) else ZoneColors.blend(p.faint, h.background, 0.85f)
             val fg = if (selected) ZoneColors.onColor(bg) else h.textColor
             val capH = pillH * 0.36f
-            val tw = textPaint(fg, capH / capRatio).measureText(option.label)
+            val tw = textPaint(fg, capH / capRatio).measureText(option.pill)
             val pr = RectF(x, pillsR.top + pillH * 0.06f, x + tw + pillH * 0.7f, pillsR.bottom - pillH * 0.06f)
+            if (pr.right > pillsR.right) break
             c.drawRoundRect(pr, pillH / 2, pillH / 2, fill(bg))
-            label(c, option.label, pr.centerX(), pr.centerY() - capH / 2, capH, fg, Paint.Align.CENTER)
+            label(c, option.pill, pr.centerX(), pr.centerY() - capH / 2, capH, fg, Paint.Align.CENTER)
             x = pr.right + pad * 0.4f
         }
         // Stats, stacked label over value, right-aligned.

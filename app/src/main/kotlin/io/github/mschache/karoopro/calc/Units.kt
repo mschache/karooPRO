@@ -1,5 +1,7 @@
 package io.github.mschache.karoopro.calc
 
+import java.time.Instant
+import java.time.ZoneId
 import java.util.Locale
 import kotlin.math.abs
 import kotlin.math.roundToInt
@@ -21,6 +23,7 @@ object Fmt {
     fun distanceUnit(u: UnitPrefs) = if (u.metricDistance) "km" else "mi"
     fun elevationUnit(u: UnitPrefs) = if (u.metricElevation) "m" else "ft"
     fun temperatureUnit(u: UnitPrefs) = if (u.metricTemperature) "°C" else "°F"
+    fun pressureUnit(u: UnitPrefs) = if (u.metricDistance) "bar" else "psi"
 
     fun int(v: Double?): String = v?.takeIf { it.isFinite() }?.roundToLong()?.toString() ?: NONE
 
@@ -36,10 +39,34 @@ object Fmt {
 
     fun elevation(m: Double?, u: UnitPrefs): String = m?.let { int(if (u.metricElevation) it else it * 3.28084) } ?: NONE
 
-    fun temperature(c: Double?, u: UnitPrefs): String = c?.let { int(if (u.metricTemperature) it else it * 9 / 5 + 32) } ?: NONE
+    fun temperature(c: Double?, u: UnitPrefs, digits: Int = 0): String = c?.let {
+        val v = if (u.metricTemperature) it else it * 9 / 5 + 32
+        if (digits == 0) int(v) else decimal(v, digits)
+    } ?: NONE
+
+    /** Tyre pressure, which the Karoo reports in mbar: bar with metric distances, psi otherwise. */
+    fun pressure(mbar: Double?, u: UnitPrefs): String = mbar?.takeIf { it > 0 }?.let {
+        if (u.metricDistance) decimal(it / 1000, 2) else int(it * 0.0145038)
+    } ?: NONE
 
     /** h:mm:ss or m:ss from milliseconds. */
     fun duration(ms: Double?): String = ms?.takeIf { it.isFinite() && it >= 0 }?.let { seconds((it / 1000).toLong()) } ?: NONE
+
+    /**
+     * Time of day as H:mm. The Karoo's clock and arrival fields are milliseconds since local
+     * midnight; epoch milliseconds are accepted too.
+     */
+    fun clock(ms: Double?): String {
+        val v = ms?.takeIf { it.isFinite() && it >= 0 } ?: return NONE
+        val secondOfDay = if (v > 2 * DAY_MS) {
+            Instant.ofEpochMilli(v.toLong()).atZone(ZoneId.systemDefault()).toLocalTime().toSecondOfDay().toLong()
+        } else {
+            (v / 1000).toLong() % 86_400
+        }
+        return String.format(Locale.US, "%d:%02d", secondOfDay / 3600, (secondOfDay % 3600) / 60)
+    }
+
+    private const val DAY_MS = 86_400_000.0
 
     fun seconds(totalSeconds: Long): String {
         val s = abs(totalSeconds)

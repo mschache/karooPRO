@@ -53,6 +53,12 @@ class DemoSource(
         Metric.POWER_3S to power,
         Metric.POWER_10S to power * 0.98,
         Metric.POWER_30S to power * 0.95,
+        Metric.POWER_20M to ftp * 0.94,
+        Metric.POWER_1H to ftp * 0.84,
+        Metric.VI to 1.06,
+        Metric.KCAL_PER_HOUR to 880.0,
+        Metric.PEDAL_SMOOTHNESS to 22.0,
+        Metric.TORQUE_EFFECTIVENESS to 78.0,
         Metric.AVG_POWER to ftp * 0.78,
         Metric.MAX_POWER to ftp * 3.4,
         Metric.NP to ftp * 0.86,
@@ -71,26 +77,36 @@ class DemoSource(
         Metric.AVG_HR to 146.0,
         Metric.MAX_HR to 181.0,
         Metric.HR_PERCENT_MAX to hr / 190 * 100,
+        Metric.HRR_PERCENT to (hr - 50) / 140 * 100,
+        Metric.CORE_TEMP to 38.2,
         Metric.CADENCE to 91 + 4 * wave(20.0),
         Metric.AVG_CADENCE to 88.0,
         Metric.DISTANCE to 48_250.0,
         Metric.ELAPSED_TIME to 5_833_000.0 + t * 1000,
         Metric.TOTAL_TIME to 6_100_000.0 + t * 1000,
         Metric.CLOCK to 39_600_000.0,
+        Metric.SUNSET_IN to 15_480_000.0,
+        Metric.TO_GO to 31_400.0,
+        Metric.ETA to 47_400_000.0,
+        Metric.CLIMB_LEFT to 540.0,
+        Metric.TYRE_FRONT to 4_600.0,
+        Metric.TYRE_REAR to 4_900.0,
         Metric.ELEVATION to 412.0,
         Metric.ASCENT to 864.0,
         Metric.GRADE to 5.4 + wave(30.0),
         Metric.VAM to 1080.0,
         Metric.TEMPERATURE to 19.0,
         Metric.W_PRIME to 13_400.0,
+        Metric.W_PRIME_EMPTY to 134_000.0,
         Metric.HEADWIND to -2.6,
+        Metric.CROSSWIND to 3.1,
         Metric.WIND_SPEED to 4.2,
         Metric.POWER_ZONE to 4.0,
         Metric.LAP_NUMBER to 4.0,
     ).mapValues { it.value }
 
     override fun value(metric: Metric): Double? {
-        if (noPowerMeter && metric.name.contains("POWER") || noPowerMeter && metric in setOf(Metric.NP, Metric.IF, Metric.TSS, Metric.WKG, Metric.FTP_PERCENT, Metric.WORK, Metric.W_PRIME)) return null
+        if (noPowerMeter && metric.name.contains("POWER") || noPowerMeter && metric in setOf(Metric.NP, Metric.IF, Metric.TSS, Metric.VI, Metric.WKG, Metric.FTP_PERCENT, Metric.WORK, Metric.W_PRIME, Metric.W_PRIME_EMPTY)) return null
         return values[metric]
     }
 

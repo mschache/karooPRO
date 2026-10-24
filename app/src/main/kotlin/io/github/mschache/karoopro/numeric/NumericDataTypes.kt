@@ -60,10 +60,18 @@ class WPrimeDataType(graph: AppGraph) : ComputedNumber(graph, "wprime", DataType
     override fun value(): Double? = graph.hub.value(Metric.W_PRIME)?.div(1000)
 }
 
-/** Head (+) or tail (-) wind component, shown in the rider's speed unit. */
-class HeadwindDataType(graph: AppGraph) : ComputedNumber(graph, "headwind", DataType.Type.SPEED) {
-    override fun value(): Double? = graph.weather.headwind()
+/** Time until W' is empty at the current 3 s power, as a duration; empty at or below CP. */
+class WPrimeEmptyDataType(graph: AppGraph) : ComputedNumber(graph, "wprime-empty", DataType.Type.ELAPSED_TIME) {
+    override fun value(): Double? = graph.hub.value(Metric.W_PRIME_EMPTY)
+}
 
+/** Best 20 min power of this ride. */
+class Best20DataType(graph: AppGraph) : ComputedNumber(graph, "best-20m", DataType.Type.POWER) {
+    override fun value(): Double? = graph.recorder.read { best.bestFor(1200) }
+}
+
+/** A wind number in the rider's speed unit; keeps the weather loading while it is on a page. */
+abstract class WindNumber(graph: AppGraph, typeId: String) : ComputedNumber(graph, typeId, DataType.Type.SPEED) {
     override fun hold(scope: CoroutineScope): Job = scope.launch {
         val weather = graph.weather.acquire()
         try {
@@ -72,4 +80,14 @@ class HeadwindDataType(graph: AppGraph) : ComputedNumber(graph, "headwind", Data
             weather.cancel()
         }
     }
+}
+
+/** Head (+) or tail (-) wind component, shown in the rider's speed unit. */
+class HeadwindDataType(graph: AppGraph) : WindNumber(graph, "headwind") {
+    override fun value(): Double? = graph.weather.headwind()
+}
+
+/** Crosswind from either side, shown in the rider's speed unit. */
+class CrosswindDataType(graph: AppGraph) : WindNumber(graph, "crosswind") {
+    override fun value(): Double? = graph.hub.value(Metric.CROSSWIND)
 }

@@ -60,6 +60,10 @@ class RideRecorder(
 
     fun start() {
         hub.registerComputed(Metric.W_PRIME) { if (hasPower) synchronized(lock) { wPrime.balance } else null }
+        hub.registerComputed(Metric.W_PRIME_EMPTY) {
+            val power = hub.value(Metric.POWER_3S)
+            if (hasPower) synchronized(lock) { wPrime.secondsToEmpty(power) }?.times(1000) else null
+        }
         scope.launch {
             var previous: RideState? = null
             hub.rideState.collect { state ->

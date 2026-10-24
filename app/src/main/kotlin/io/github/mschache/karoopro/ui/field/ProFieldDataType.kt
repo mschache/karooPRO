@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import io.github.mschache.karoopro.AppGraph
 import io.github.mschache.karoopro.EXTENSION_ID
+import io.github.mschache.karoopro.data.Metric
 import io.github.mschache.karoopro.data.Panel
 import io.github.mschache.karoopro.karoo.ThrottledViewEmitter
 import io.hammerhead.karooext.extension.DataTypeImpl
@@ -88,12 +89,17 @@ class ProFieldDataType(private val graph: AppGraph) : DataTypeImpl(EXTENSION_ID,
         return page.elements.any { it.dataTypeId == dataTypeId }
     }
 
-    /** Weather runs only while this field is placed and the Weather panel is enabled. */
+    /** Weather runs only while this field is placed and the Weather panel or a wind tile or card is on. */
     private fun weatherHold(scope: CoroutineScope) {
         scope.launch {
             var hold: Job? = null
             while (isActive) {
-                val wanted = graph.settings.value.let { s -> s.weatherEnabled && s.orderedPanels.any { it.panel == Panel.WEATHER && it.enabled } }
+                val wanted = graph.settings.value.let { s ->
+                    s.weatherEnabled && (
+                        s.orderedPanels.any { it.panel == Panel.WEATHER && it.enabled } ||
+                            (s.rideTiles + s.heroCards.orEmpty()).any { it in Metric.wind }
+                        )
+                }
                 if (wanted && hold == null) hold = graph.weather.acquire()
                 if (!wanted) {
                     hold?.cancel()

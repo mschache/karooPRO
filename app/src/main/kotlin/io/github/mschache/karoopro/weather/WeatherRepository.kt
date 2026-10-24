@@ -49,6 +49,7 @@ class WeatherRepository(
 
     fun start() {
         hub.registerComputed(Metric.HEADWIND) { headwind() }
+        hub.registerComputed(Metric.CROSSWIND) { wind()?.cross?.let { kotlin.math.abs(it) } }
         hub.registerComputed(Metric.WIND_SPEED) { _weather.value?.windSpeed }
         scope.launch {
             consumers.map { it > 0 }.distinctUntilChanged().collectLatest { active ->

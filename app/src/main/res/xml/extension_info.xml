@@ -29,6 +29,24 @@
         graphical="false"
         icon="@drawable/ic_wind"
         typeId="headwind" />
+    <DataType
+        description="@string/wprime_empty_description"
+        displayName="@string/wprime_empty_name"
+        graphical="false"
+        icon="@drawable/ic_karoopro"
+        typeId="wprime-empty" />
+    <DataType
+        description="@string/crosswind_description"
+        displayName="@string/crosswind_name"
+        graphical="false"
+        icon="@drawable/ic_wind"
+        typeId="crosswind" />
+    <DataType
+        description="@string/best20_description"
+        displayName="@string/best20_name"
+        graphical="false"
+        icon="@drawable/ic_karoopro"
+        typeId="best-20m" />
     <BonusAction
         actionId="next-panel"
         displayName="@string/action_next_panel" />

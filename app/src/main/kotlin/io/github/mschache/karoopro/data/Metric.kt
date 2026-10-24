@@ -7,11 +7,12 @@ import io.hammerhead.karooext.models.DataType.Type
 
 /** Where a metric comes from: a Karoo data type field, or something KarooPRO computes itself. */
 sealed class Source {
-    data class Karoo(val typeId: String, val field: String?) : Source()
+    /** [pair] is a second field averaged with [field], for left/right pedal values. */
+    data class Karoo(val typeId: String, val field: String?, val pair: String? = null) : Source()
     data object Computed : Source()
 }
 
-enum class Format { POWER, SPEED, HR, CADENCE, DISTANCE, DURATION, ELEVATION, GRADE, VAM, KJ, KCAL, PERCENT, DECIMAL2, INT, TEMP, BALANCE, WKG, WIND }
+enum class Format { POWER, SPEED, HR, CADENCE, DISTANCE, DURATION, CLOCK, ELEVATION, GRADE, VAM, KJ, KCAL, KCAL_H, PERCENT, DECIMAL2, INT, TEMP, BODY_TEMP, PRESSURE, BALANCE, WKG, WIND }
 
 /**
  * Every value a tile, card or lap field can show. [graph] names the metric whose 1 Hz history is
@@ -28,16 +29,22 @@ enum class Metric(
     POWER("POWER", Source.Karoo(Type.POWER, Field.POWER), Format.POWER, "POWER_3S"),
     POWER_10S("POWER 10S", Source.Karoo(Type.SMOOTHED_10S_AVERAGE_POWER, Field.SMOOTHED_10S_AVERAGE_POWER), Format.POWER, "POWER_3S"),
     POWER_30S("POWER 30S", Source.Karoo(Type.SMOOTHED_30S_AVERAGE_POWER, Field.SMOOTHED_30S_AVERAGE_POWER), Format.POWER, "POWER_3S"),
+    POWER_20M("POWER 20M", Source.Karoo(Type.SMOOTHED_20M_AVERAGE_POWER, Field.SMOOTHED_20M_AVERAGE_POWER), Format.POWER, "POWER_3S"),
+    POWER_1H("POWER 1H", Source.Karoo(Type.SMOOTHED_1HR_AVERAGE_POWER, Field.SMOOTHED_1HR_AVERAGE_POWER), Format.POWER, "POWER_3S"),
     AVG_POWER("AVG POWER", Source.Karoo(Type.AVERAGE_POWER, Field.AVERAGE_POWER), Format.POWER, "POWER_3S"),
     MAX_POWER("MAX POWER", Source.Karoo(Type.MAX_POWER, Field.MAX_POWER), Format.POWER),
     NP("NP", Source.Karoo(Type.NORMALIZED_POWER, Field.NORMALIZED_POWER), Format.POWER, "POWER_3S"),
     IF("IF", Source.Karoo(Type.INTENSITY_FACTOR, Field.INTENSITY_FACTOR), Format.DECIMAL2),
     TSS("TSS", Source.Karoo(Type.TRAINING_STRESS_SCORE, Field.TRAINING_STRESS_SCORE), Format.INT),
+    VI("VI", Source.Karoo(Type.VARIABILITY_INDEX, Field.VARIABILITY_INDEX), Format.DECIMAL2),
     FTP_PERCENT("% FTP", Source.Karoo(Type.PERCENT_MAX_FTP, Field.PERCENT_MAX_FTP), Format.PERCENT, "POWER_3S"),
     WKG("W/KG", Source.Karoo(Type.POWER_TO_WEIGHT, Field.POWER_TO_WEIGHT), Format.WKG, "POWER_3S"),
     WORK("WORK", Source.Karoo(Type.ENERGY_OUTPUT, Field.ENERGY_OUTPUT), Format.KJ, "POWER_3S"),
     CALORIES("CALORIES", Source.Karoo(Type.CALORIES, Field.CALORIES), Format.KCAL, "POWER_3S"),
+    KCAL_PER_HOUR("KCAL/H", Source.Karoo(Type.CALORIES_PER_HOUR, Field.CALORIES_PER_HOUR), Format.KCAL_H, "POWER_3S"),
     BALANCE("L/R BALANCE", Source.Karoo(Type.SMOOTHED_3S_AVERAGE_PEDAL_POWER_BALANCE, Field.PEDAL_POWER_BALANCE_LEFT), Format.BALANCE),
+    PEDAL_SMOOTHNESS("PEDAL SMOOTH", Source.Karoo(Type.PEDAL_SMOOTHNESS, Field.PEDAL_SMOOTHNESS_LEFT, Field.PEDAL_SMOOTHNESS_RIGHT), Format.PERCENT),
+    TORQUE_EFFECTIVENESS("TORQUE EFF", Source.Karoo(Type.TORQUE_EFFECTIVENESS, Field.TORQUE_EFFECTIVENESS_LEFT, Field.TORQUE_EFFECTIVENESS_RIGHT), Format.PERCENT),
 
     SPEED("SPEED", Source.Karoo(Type.SPEED, Field.SPEED), Format.SPEED, "SPEED"),
     SPEED_3S("SPEED 3S", Source.Karoo(Type.SMOOTHED_3S_AVERAGE_SPEED, Field.SMOOTHED_3S_AVERAGE_SPEED), Format.SPEED, "SPEED"),
@@ -48,6 +55,8 @@ enum class Metric(
     AVG_HR("AVG HR", Source.Karoo(Type.AVERAGE_HR, Field.AVG_HR), Format.HR, "HEART_RATE"),
     MAX_HR("MAX HR", Source.Karoo(Type.MAX_HR, Field.MAX_HR), Format.HR),
     HR_PERCENT_MAX("% MAX HR", Source.Karoo(Type.PERCENT_MAX_HR, Field.PERCENT_MAX_HR), Format.PERCENT, "HEART_RATE"),
+    HRR_PERCENT("% HRR", Source.Karoo(Type.PERCENT_HRR, Field.PERCENT_HRR), Format.PERCENT, "HEART_RATE"),
+    CORE_TEMP("CORE TEMP", Source.Karoo(Type.CORE_TEMP, Field.CORE_TEMP), Format.BODY_TEMP),
 
     CADENCE("CADENCE", Source.Karoo(Type.CADENCE, Field.CADENCE), Format.CADENCE, "CADENCE"),
     AVG_CADENCE("AVG CADENCE", Source.Karoo(Type.AVERAGE_CADENCE, Field.AVERAGE_CADENCE), Format.CADENCE, "CADENCE"),
@@ -55,16 +64,27 @@ enum class Metric(
     DISTANCE("DISTANCE", Source.Karoo(Type.DISTANCE, Field.DISTANCE), Format.DISTANCE, "SPEED"),
     ELAPSED_TIME("RIDE TIME", Source.Karoo(Type.ELAPSED_TIME, Field.ELAPSED_TIME), Format.DURATION, "SPEED"),
     TOTAL_TIME("TOTAL TIME", Source.Karoo(Type.RIDE_TIME, Field.RIDE_TIME), Format.DURATION, "SPEED"),
-    CLOCK("TIME OF DAY", Source.Karoo(Type.CLOCK_TIME, Field.CLOCK_TIME), Format.DURATION),
+    CLOCK("TIME OF DAY", Source.Karoo(Type.CLOCK_TIME, Field.CLOCK_TIME), Format.CLOCK),
+    SUNSET_IN("SUNSET IN", Source.Karoo(Type.TIME_TO_SUNSET, Field.TIME_TO_SUNSET), Format.DURATION),
+
+    // While navigating.
+    TO_GO("TO GO", Source.Karoo(Type.DISTANCE_TO_DESTINATION, Field.DISTANCE_TO_DESTINATION), Format.DISTANCE),
+    ETA("ETA", Source.Karoo(Type.TIME_OF_ARRIVAL, Field.TIME_OF_ARRIVAL), Format.CLOCK),
+    CLIMB_LEFT("CLIMB LEFT", Source.Karoo(Type.ELEVATION_REMAINING, Field.ASCENT_REMAINING), Format.ELEVATION),
 
     ELEVATION("ELEVATION", Source.Karoo(Type.PRESSURE_ELEVATION_CORRECTION, Field.PRESSURE_ELEVATION), Format.ELEVATION, "ELEVATION"),
     ASCENT("ASCENT", Source.Karoo(Type.ELEVATION_GAIN, Field.ELEVATION_GAIN), Format.ELEVATION, "ELEVATION"),
     GRADE("GRADE", Source.Karoo(Type.ELEVATION_GRADE, Field.ELEVATION_GRADE), Format.GRADE, "GRADE"),
     VAM("VAM", Source.Karoo(Type.VERTICAL_SPEED, Field.VERTICAL_SPEED), Format.VAM, "VAM"),
     TEMPERATURE("TEMP", Source.Karoo(Type.TEMPERATURE, Field.TEMPERATURE), Format.TEMP, "TEMPERATURE"),
+    TYRE_FRONT("TYRE F", Source.Karoo(Type.TIRE_PRESSURE_FRONT, Field.TIRE_PRESSURE), Format.PRESSURE),
+    TYRE_REAR("TYRE R", Source.Karoo(Type.TIRE_PRESSURE_REAR, Field.TIRE_PRESSURE), Format.PRESSURE),
 
     W_PRIME("W' BAL", Source.Computed, Format.KJ, "W_PRIME"),
+    /** Time until W' runs out at the current 3 s power; null at or below CP. */
+    W_PRIME_EMPTY("W' EMPTY IN", Source.Computed, Format.DURATION),
     HEADWIND("HEADWIND", Source.Computed, Format.WIND, "HEADWIND"),
+    CROSSWIND("CROSSWIND", Source.Computed, Format.WIND),
     WIND_SPEED("WIND", Source.Computed, Format.WIND),
 
     // Used internally by the hero and the Effort/Bike panels; not offered as custom fields.
@@ -88,27 +108,35 @@ enum class Metric(
         Format.VAM -> "m/h"
         Format.KJ -> "kJ"
         Format.KCAL -> "kcal"
-        Format.TEMP -> Fmt.temperatureUnit(u)
+        Format.KCAL_H -> "kcal/h"
+        Format.TEMP, Format.BODY_TEMP -> Fmt.temperatureUnit(u)
+        Format.PRESSURE -> Fmt.pressureUnit(u)
         Format.WKG -> "W/kg"
-        Format.DURATION, Format.DECIMAL2, Format.INT, Format.BALANCE -> ""
+        Format.DURATION, Format.CLOCK, Format.DECIMAL2, Format.INT, Format.BALANCE -> ""
     }
 
     fun format(v: Double?, u: UnitPrefs): String = when (format) {
-        Format.POWER, Format.HR, Format.CADENCE, Format.INT, Format.KCAL, Format.PERCENT, Format.VAM -> Fmt.int(v)
+        Format.POWER, Format.HR, Format.CADENCE, Format.INT, Format.KCAL, Format.KCAL_H, Format.PERCENT, Format.VAM -> Fmt.int(v)
         Format.SPEED -> Fmt.speed(v, u)
         Format.WIND -> v?.let { Fmt.int(Fmt.speedValue(it, u)) } ?: Fmt.NONE
         Format.DISTANCE -> Fmt.distance(v, u)
         Format.DURATION -> Fmt.duration(v)
+        Format.CLOCK -> Fmt.clock(v)
         Format.ELEVATION -> Fmt.elevation(v, u)
         Format.GRADE -> Fmt.decimal(v, 1)
         Format.KJ -> if (this == W_PRIME) Fmt.decimal(v?.div(1000), 1) else Fmt.int(v)
         Format.DECIMAL2, Format.WKG -> Fmt.decimal(v, 2)
         Format.TEMP -> Fmt.temperature(v, u)
+        Format.BODY_TEMP -> Fmt.temperature(v, u, digits = 1)
+        Format.PRESSURE -> Fmt.pressure(v, u)
         Format.BALANCE -> Fmt.balance(v)
     }
 
     companion object {
         val selectableEntries: List<Metric> get() = entries.filter { it.selectable }
+
+        /** Metrics that need the weather loaded. */
+        val wind: Set<Metric> get() = setOf(HEADWIND, CROSSWIND, WIND_SPEED)
 
         /** Metrics the recorder keeps 1 Hz history for (mini graphs, effort bars). */
         val graphed: List<Metric> get() = entries.mapNotNull { it.graph }.distinct()

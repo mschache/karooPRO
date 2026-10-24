@@ -2,7 +2,7 @@
 
 KarooPRO is a free, open-source extension for the **Hammerhead Karoo 3** (and Karoo 2) that puts your whole ride on one page.
 
-The top of the page shows one big number: 3-second power, speed or heart rate. Tap it to switch between them. The other two sit right below. The number and the page are colored by your training zone, so you feel your effort before you read it.
+The top of the page shows one big number: 3-second power, speed or heart rate, and optionally 10-second power, % FTP or W/kg. Tap it to switch between the ones you picked. Two cards sit right below: by default the two of power, speed and heart rate that aren't on top, or any two values you choose. The number and the page are colored by your training zone, so you feel your effort before you read it.
 
 Below that is a panel you flip with a tap on its left or right side.
 
@@ -28,7 +28,19 @@ With no power meter, KarooPRO starts on speed and colors by heart rate.
 **Extra fields you can place anywhere:**
 - **PRO Wind:** a compass that turns with your heading.
 - **PRO W′ Balance:** in kJ.
+- **PRO W′ Empty In:** how long your W′ lasts at your current 3-second power. Empty while you ride at or below CP.
 - **PRO Headwind:** head (+) or tail (−) wind in your speed unit.
+- **PRO Crosswind:** crosswind from either side in your speed unit.
+- **PRO Best 20 min:** your best 20-minute power so far this ride.
+
+**Tiles and cards** can show any of about 50 values. Besides the usual power, speed, heart rate, cadence, distance, time and climbing values, there are:
+- Power: 20-minute and 1-hour power, VI, kcal/h.
+- Pedaling: pedal smoothness, torque effectiveness.
+- Heart rate and body: % HRR, core temperature (CORE sensor).
+- Bike: tyre pressure front and rear.
+- Time: time to sunset.
+- Navigation: distance to go, arrival time, climbing left.
+- W′ empty in, crosswind.
 
 <p>
   <img src="docs/screenshot-1.png" width="240" alt="Workout panel">
@@ -86,13 +98,13 @@ Now ride:
 - Tap the top half to switch the big number.
 - Tap the left or right third of the lower half to change panels.
 
-You can also map **KarooPRO: next panel**, **previous panel** or **switch power/speed/HR** to a remote button as Karoo bonus actions.
+You can also map **KarooPRO: next panel**, **previous panel** or **switch the big number** to a remote button as Karoo bonus actions.
 
 ## Settings
 
 Open the **KarooPRO** app on the Karoo to:
 - Hide or reorder panels, and choose whether Workout, Bike and Coach open by themselves.
-- Pick the default big number, the zone color style (tint the page, fill the top, or color the number) and the theme.
+- Pick which big numbers the tap switches between and which one it starts on, the two cards under it, the zone color style (tint the page, fill the top, or color the number) and the theme.
 - Choose the 4 Ride tiles and the 4 Lap fields.
 - Set CP and W′ for W′ balance (CP defaults to your Karoo FTP; W′ to 20 kJ).
 - Set the workout alert style, beeps and the pop-up on other pages.
@@ -103,7 +115,7 @@ Open the **KarooPRO** app on the Karoo to:
 ## Good to know
 
 - **Next workout step.** The Karoo shares only the running workout step. The countdown to the next step is exact, but its target appears when the step starts.
-- **Weather.** Weather comes from [Open-Meteo](https://open-meteo.com). It needs WiFi or the Companion app, and is fetched only while the Weather panel or a wind field is in use: every 15 minutes, or after 3 km.
+- **Weather.** Weather comes from [Open-Meteo](https://open-meteo.com). It needs WiFi or the Companion app, and is fetched only while the Weather panel, a wind tile or card, or a wind field is in use: every 15 minutes, or after 3 km.
 - **Battery levels.** Di2/AXS and power-meter batteries are shown as the levels the Karoo reports (new, good, OK, low, critical), not percentages.
 - **Rendering.** The field is drawn as a single image about once per second, the Karoo's limit for extension views. When its page is not on screen, it stops drawing.
 

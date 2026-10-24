@@ -1,7 +1,10 @@
 package io.github.mschache.karoopro
 
+import io.github.mschache.karoopro.numeric.Best20DataType
+import io.github.mschache.karoopro.numeric.CrosswindDataType
 import io.github.mschache.karoopro.numeric.HeadwindDataType
 import io.github.mschache.karoopro.numeric.WPrimeDataType
+import io.github.mschache.karoopro.numeric.WPrimeEmptyDataType
 import io.github.mschache.karoopro.ui.field.ProFieldDataType
 import io.github.mschache.karoopro.ui.field.WindDataType
 import io.hammerhead.karooext.extension.DataTypeImpl
@@ -19,6 +22,9 @@ class KarooProExtension : KarooExtension(EXTENSION_ID, BuildConfig.VERSION_NAME)
             WindDataType(g),
             WPrimeDataType(g),
             HeadwindDataType(g),
+            WPrimeEmptyDataType(g),
+            CrosswindDataType(g),
+            Best20DataType(g),
         )
     }
 
