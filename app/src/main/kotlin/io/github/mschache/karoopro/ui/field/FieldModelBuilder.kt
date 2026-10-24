@@ -2,6 +2,8 @@ package io.github.mschache.karoopro.ui.field
 
 import io.github.mschache.karoopro.calc.Fmt
 import io.github.mschache.karoopro.calc.LapCompare
+import io.github.mschache.karoopro.calc.SegmentPhase
+import io.github.mschache.karoopro.calc.SegmentTracker
 import io.github.mschache.karoopro.calc.Trend
 import io.github.mschache.karoopro.calc.Wind
 import io.github.mschache.karoopro.calc.ZoneColors
@@ -16,6 +18,7 @@ import io.github.mschache.karoopro.data.BigMetric
 import io.github.mschache.karoopro.data.ColorMode
 import io.github.mschache.karoopro.data.Metric
 import io.github.mschache.karoopro.data.Panel
+import io.github.mschache.karoopro.data.SegmentMonitor
 import io.github.mschache.karoopro.data.Settings
 import io.github.mschache.karoopro.data.Source
 import io.github.mschache.karoopro.data.ThemeMode
@@ -97,6 +100,7 @@ object FieldModelBuilder {
                 add(DataType.Type.SMOOTHED_3S_AVERAGE_PEDAL_POWER_BALANCE)
                 add(DataType.Type.CADENCE)
             }
+            Panel.SEGMENT -> addAll(SegmentMonitor.TYPES)
             Panel.WEATHER, Panel.WORKOUT, Panel.COACH -> Unit
         }
     }
@@ -334,6 +338,41 @@ object FieldModelBuilder {
             Panel.COACH -> coach(src)
 
             Panel.CLIMB -> climb(src)
+
+            Panel.SEGMENT -> segment(src)
+        }
+    }
+
+    private fun segment(src: RideSource): SegmentContent {
+        val u = src.profile.units
+        val st = src.segment
+            ?: return SegmentContent("SEGMENT", Stat("", Fmt.NONE), null, Stat("", Fmt.NONE), null, null, emptyList(), "No Strava Live Segment\nnearby")
+        val r = st.reading
+        fun ahead(ms: Double?) = ms?.takeIf { it.isFinite() && it != 0.0 }?.let { it < 0 }
+        return if (st.phase == SegmentPhase.APPROACHING) {
+            SegmentContent(
+                title = "SEGMENT IN ${Fmt.elevation(r.distanceAway, u)} ${Fmt.elevationUnit(u)}",
+                main = Stat("YOUR PR", Fmt.duration(r.pr)),
+                mainAhead = null,
+                second = Stat("KOM", Fmt.duration(r.kom)),
+                secondAhead = null,
+                progress = null,
+                stats = listOf(Stat("LENGTH", Fmt.distance(r.totalDistance, u), Fmt.distanceUnit(u))),
+            )
+        } else {
+            SegmentContent(
+                title = if (st.phase == SegmentPhase.DONE) "SEGMENT DONE" else "SEGMENT",
+                main = Stat("VS PR", SegmentTracker.delta(r.prDelta)),
+                mainAhead = ahead(r.prDelta),
+                second = Stat("VS KOM", SegmentTracker.delta(r.komDelta)),
+                secondAhead = ahead(r.komDelta),
+                progress = if (st.phase == SegmentPhase.DONE) 1f else r.progress,
+                stats = listOf(
+                    Stat("TIME", Fmt.duration(r.elapsed)),
+                    Stat("LEFT", Fmt.distance(r.distanceLeft, u), Fmt.distanceUnit(u)),
+                    Stat("UP", Fmt.elevation(r.elevationLeft, u), Fmt.elevationUnit(u)),
+                ),
+            )
         }
     }
 

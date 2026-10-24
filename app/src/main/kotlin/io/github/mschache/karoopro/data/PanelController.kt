@@ -1,6 +1,7 @@
 package io.github.mschache.karoopro.data
 
 import io.github.mschache.karoopro.calc.ClimbProgress
+import io.github.mschache.karoopro.calc.SegmentState
 import io.github.mschache.karoopro.coach.CoachInbox
 import io.github.mschache.karoopro.coach.CoachLink
 import io.github.mschache.karoopro.karoo.field
@@ -18,8 +19,9 @@ import kotlinx.coroutines.launch
  * Which panel the field shows. Shared by every KarooPRO field instance; flipped by taps and bonus
  * actions, and switched automatically when a workout starts, Di2/AXS shifting appears or a coach
  * message arrives. During a workout, a Coach panel that opened by itself goes back after 20 s
- * without a tap, so coach messages never hide the target for long. While navigating, the Climb
- * panel opens just before each climb and goes back at the top, unless the rider took over.
+ * without a tap, so coach messages never hide the target for long. The Climb panel opens just
+ * before each climb on a navigated route and the Segment panel for a Strava Live Segment; both give
+ * the screen back when it's over, unless the rider took over.
  */
 class PanelController(
     private val hub: RideDataHub,
@@ -29,6 +31,8 @@ class PanelController(
     private val scope: CoroutineScope,
     /** The climb the rider is on or the next one on the navigated route. */
     private val climb: () -> ClimbProgress? = { null },
+    /** The Strava Live Segment coming up, running or just finished. */
+    private val segment: () -> SegmentState? = { null },
 ) {
     private val _current = MutableStateFlow(Panel.RIDE)
     val current: StateFlow<Panel> = _current
@@ -49,11 +53,40 @@ class PanelController(
     /** When a coach message last opened the Coach panel by itself; 0 once the rider took over. */
     @Volatile private var coachOpenedAt = 0L
 
-    /** The panel a climb replaced, while the Climb panel it opened by itself is still on screen. */
-    @Volatile private var beforeClimb: Panel? = null
+    /**
+     * A panel that opens by itself while it's wanted and, when that ends, goes back to the panel it
+     * replaced, unless the rider flipped panels in between.
+     */
+    private inner class AutoPanel(val panel: Panel) {
+        @Volatile var before: Panel? = null
+        private var was = false
 
-    /** Set by the 1 s loop: a climb is ahead on the navigated route. */
+        fun tick(wanted: Boolean, open: Boolean) {
+            if (wanted && !was && open && shown() != panel) {
+                val from = shown()
+                show(panel)
+                before = from
+            } else if (!wanted && was) {
+                before?.takeIf { shown() == panel && it in visiblePanels() }?.let { show(it) }
+                before = null
+            }
+            was = wanted
+        }
+    }
+
+    private val climbPanel = AutoPanel(Panel.CLIMB)
+    private val segmentPanel = AutoPanel(Panel.SEGMENT)
+
+    /** Set by the 1 s loop: a climb is ahead on the navigated route; a segment is near, running or just done. */
     @Volatile private var climbAhead = false
+    @Volatile private var segmentNear = false
+
+    private fun riderTookOver() {
+        beforeCoach = null
+        coachOpenedAt = 0
+        climbPanel.before = null
+        segmentPanel.before = null
+    }
 
     fun visiblePanels(s: Settings = settings.value): List<Panel> =
         s.orderedPanels.filter { it.enabled }.map { it.panel }.filter {
@@ -62,6 +95,7 @@ class PanelController(
                 Panel.BIKE -> shiftingAvailable
                 Panel.COACH -> coach.available
                 Panel.CLIMB -> climbAhead
+                Panel.SEGMENT -> segmentNear
                 else -> true
             }
         }.ifEmpty { listOf(Panel.RIDE) }
@@ -75,9 +109,7 @@ class PanelController(
     fun step(direction: Int) {
         val visible = visiblePanels()
         val i = visible.indexOf(shown()).coerceAtLeast(0)
-        beforeCoach = null
-        coachOpenedAt = 0
-        beforeClimb = null
+        riderTookOver()
         _current.value = visible[(i + direction).mod(visible.size)]
         invalidate()
     }
@@ -89,7 +121,8 @@ class PanelController(
      */
     fun tap(direction: Int) {
         coachOpenedAt = 0
-        beforeClimb = null
+        climbPanel.before = null
+        segmentPanel.before = null
         if (shown() == Panel.COACH && coach.state.value?.unread == true) {
             coach.acknowledge()
             beforeCoach?.takeIf { it in visiblePanels() }?.let { _current.value = it }
@@ -101,9 +134,7 @@ class PanelController(
     }
 
     fun show(panel: Panel) {
-        beforeCoach = null
-        coachOpenedAt = 0
-        beforeClimb = null
+        riderTookOver()
         _current.value = panel
         invalidate()
     }
@@ -136,26 +167,19 @@ class PanelController(
         scope.launch {
             var wasWorkout = false
             var wasShifting = false
-            var wasNearClimb = false
             while (isActive) {
                 val c = climb()
                 climbAhead = c != null
-                val nearClimb = c != null && c.toStart <= CLIMB_OPEN_BEFORE_M
+                segmentNear = segment() != null
                 shiftingAvailable = hub.stream(DataType.Type.SHIFTING_GEARS).value.field(DataType.Field.SHIFTING_REAR_GEAR) != null
                 val s = settings.value
                 val enabled = s.orderedPanels.filter { it.enabled }.map { it.panel }
                 val isWorkout = workout.active
                 if (isWorkout && !wasWorkout && s.autoOpenWorkout && Panel.WORKOUT in enabled) show(Panel.WORKOUT)
                 if (shiftingAvailable && !wasShifting && !isWorkout && s.autoOpenBike && Panel.BIKE in enabled) show(Panel.BIKE)
-                if (nearClimb && !wasNearClimb && !isWorkout && s.autoOpenClimb && Panel.CLIMB in enabled && shown() != Panel.CLIMB) {
-                    val from = shown()
-                    show(Panel.CLIMB)
-                    beforeClimb = from
-                } else if (!nearClimb && wasNearClimb) {
-                    // Over the top: back to the panel the climb replaced, unless the rider took over.
-                    beforeClimb?.takeIf { shown() == Panel.CLIMB && it in visiblePanels() }?.let { show(it) }
-                    beforeClimb = null
-                }
+                // Climbs open 200 m before they start and close at the top; segments for as long as they're near.
+                climbPanel.tick(c != null && c.toStart <= CLIMB_OPEN_BEFORE_M, !isWorkout && s.autoOpenClimb && Panel.CLIMB in enabled)
+                segmentPanel.tick(segmentNear, !isWorkout && s.autoOpenSegment && Panel.SEGMENT in enabled)
                 if (shown() != Panel.COACH) {
                     coachOpenedAt = 0
                 } else if (isWorkout && coachOpenedAt > 0 && System.currentTimeMillis() - coachOpenedAt >= COACH_RETURN_MS) {
@@ -165,7 +189,6 @@ class PanelController(
                 }
                 wasWorkout = isWorkout
                 wasShifting = shiftingAvailable
-                wasNearClimb = nearClimb
                 delay(1000)
             }
         }

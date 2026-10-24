@@ -309,6 +309,7 @@ class FieldPainter(context: Context) {
             is BikeContent -> bike(c, m, content, r)
             is CoachContent -> coach(c, m, content, r)
             is ClimbContent -> climb(c, m, content, r)
+            is SegmentContent -> segment(c, m, content, r)
         }
     }
 
@@ -738,6 +739,32 @@ class FieldPainter(context: Context) {
         }
 
         row(statsR, cc.stats.size.coerceAtLeast(1), gap).forEachIndexed { i, cell -> cc.stats.getOrNull(i)?.let { stat(c, p, it, cell) } }
+    }
+
+    /** The gap to your PR as large as it fits, green ahead and red behind; the KOM gap, progress and three stats below. */
+    private fun segment(c: Canvas, m: FieldModel, sc: SegmentContent, r: RectF) {
+        val p = m.palette
+        sc.message?.let { return message(c, m, it, r) }
+        fun color(ahead: Boolean?) = when (ahead) {
+            true -> p.good
+            false -> p.bad
+            null -> p.text
+        }
+        val gap = r.width() * 0.03f
+        val (topR, mainR, secondR, barR, statsR) = splitV(r, 0.11f, 0.36f, 0.13f, 0.05f, 0.22f, gap = r.height() * 0.025f)
+        label(c, sc.title, topR.left, topR.top + topR.height() * 0.19f, topR.height() * 0.62f, p.text, maxWidth = topR.width())
+
+        val labelH = mainR.height() * 0.16f
+        label(c, sc.main.label, mainR.left, mainR.top, labelH, p.dim)
+        number(c, sc.main.value, sc.main.unit, RectF(mainR.left, mainR.top + labelH * 1.4f, mainR.right, mainR.bottom), color(sc.mainAhead), p.dim, 0.9f, Paint.Align.CENTER)
+
+        val capH = secondR.height() * 0.55f
+        val top = secondR.top + (secondR.height() - capH) / 2
+        val lw = label(c, sc.second.label, secondR.left, top, capH, p.dim)
+        label(c, sc.second.value, secondR.left + lw + gap, top, capH, color(sc.secondAhead))
+
+        progress(c, sc.progress, barR, p.accent, p.faint)
+        row(statsR, sc.stats.size.coerceAtLeast(1), gap).forEachIndexed { i, cell -> sc.stats.getOrNull(i)?.let { stat(c, p, it, cell) } }
     }
 
     /** Climb grades as riders know them from climb profiles: green, yellow, orange, red, dark red. */

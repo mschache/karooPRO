@@ -6,6 +6,7 @@ enum class Panel(val title: String) {
     RIDE("RIDE"),
     EFFORT("EFFORT"),
     CLIMB("CLIMB"),
+    SEGMENT("SEGMENT"),
     WEATHER("WEATHER"),
     LAP("LAP"),
     ANALYSIS("ANALYSIS"),
@@ -51,6 +52,8 @@ data class Settings(
     val autoOpenCoach: Boolean = true,
     /** Open the Climb panel just before a climb on the navigated route, and go back at the top. */
     val autoOpenClimb: Boolean = true,
+    /** Open the Segment panel when a Strava Live Segment comes up, and go back after its result. */
+    val autoOpenSegment: Boolean = true,
     val bigMetric: BigMetric = BigMetric.POWER,
     /** The big numbers a tap on the hero cycles through, in order. */
     val bigMetrics: List<BigMetric> = listOf(BigMetric.POWER, BigMetric.SPEED, BigMetric.HR),

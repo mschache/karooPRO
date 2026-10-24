@@ -5,6 +5,9 @@ import io.github.mschache.karoopro.calc.Climbs
 import io.github.mschache.karoopro.calc.ElevationProfile
 import io.github.mschache.karoopro.calc.Gearing
 import io.github.mschache.karoopro.calc.ProfilePoint
+import io.github.mschache.karoopro.calc.SegmentPhase
+import io.github.mschache.karoopro.calc.SegmentReading
+import io.github.mschache.karoopro.calc.SegmentState
 import io.github.mschache.karoopro.calc.TargetBand
 import io.github.mschache.karoopro.calc.TargetKind
 import io.github.mschache.karoopro.calc.WorkoutState
@@ -170,6 +173,15 @@ class DemoSource(
     override val climb: ClimbView? = ElevationProfile(DEMO_CLIMBS).let { profile ->
         Climbs.view(Climbs.detect(profile), 2_600.0 + t * 5, profile)
     }
+
+    /** Halfway up a 1.5 km segment, 7 s ahead of the PR, 41 s behind the KOM. */
+    override val segment = SegmentState(
+        SegmentPhase.ON,
+        SegmentReading(
+            elapsed = 95_000.0 + t * 1000, prDelta = -7_000.0, komDelta = 41_000.0, pr = 254_000.0, kom = 206_000.0,
+            distanceLeft = 620.0, elevationLeft = 34.0, totalDistance = 1_500.0,
+        ),
+    )
 
     override val workout: WorkoutState
         get() {

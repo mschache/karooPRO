@@ -13,6 +13,7 @@ import io.github.mschache.karoopro.data.RideDataHub
 import io.github.mschache.karoopro.data.RideRecorder
 import io.github.mschache.karoopro.data.RideSnapshotStore
 import io.github.mschache.karoopro.data.RouteTracker
+import io.github.mschache.karoopro.data.SegmentMonitor
 import io.github.mschache.karoopro.data.SettingsRepository
 import io.github.mschache.karoopro.data.WorkoutMonitor
 import io.github.mschache.karoopro.weather.WeatherRepository
@@ -41,7 +42,8 @@ class AppGraph(context: Context) {
     }
     val coach = CoachLink(app, settings, scope) { effort() }
     val routes = RouteTracker(hub)
-    val panels = PanelController(hub, workout, coach, settings, scope) { routes.climb() }
+    val segments = SegmentMonitor(hub, settings, scope)
+    val panels = PanelController(hub, workout, coach, settings, scope, climb = { routes.climb() }, segment = { segments.state.value })
     val mapLayers = io.github.mschache.karoopro.map.MapLayers(
         hub, routes, settings, scope, io.github.mschache.karoopro.map.MapLayerMemory(java.io.File(app.filesDir, "map-layers.txt")),
     )
@@ -84,6 +86,7 @@ class AppGraph(context: Context) {
         weather.start()
         workout.start()
         coach.start()
+        segments.start()
         panels.start()
     }
 }

@@ -9,6 +9,9 @@ import io.github.mschache.karoopro.calc.ProfilePoint
 import io.github.mschache.karoopro.calc.RouteGeometry
 import io.github.mschache.karoopro.calc.RouteRun
 import io.github.mschache.karoopro.calc.RouteWind
+import io.github.mschache.karoopro.calc.SegmentPhase
+import io.github.mschache.karoopro.calc.SegmentReading
+import io.github.mschache.karoopro.calc.SegmentTracker
 import io.github.mschache.karoopro.calc.WindRuns
 import io.github.mschache.karoopro.calc.encodePolyline
 import io.github.mschache.karoopro.calc.mergeRuns
@@ -157,5 +160,30 @@ class ClimbsTest {
         assertEquals(8.0, view.slices[5].grade, 1.0)
         assertEquals(500.0, view.riderAt!!, 50.0)
         assertNull(Climbs.view(Climbs.detect(p), 1_000.0, p)!!.riderAt)
+    }
+}
+
+class SegmentTrackerTest {
+    @Test fun approachRunThenHoldTheResult() {
+        val t = SegmentTracker(holdMs = 10_000, approachM = 500.0)
+        assertNull(t.update(null, 0))
+        assertNull(t.update(SegmentReading(distanceAway = 900.0), 1_000))
+        assertEquals(SegmentPhase.APPROACHING, t.update(SegmentReading(distanceAway = 320.0, pr = 254_000.0), 2_000)!!.phase)
+        val on = t.update(SegmentReading(elapsed = 5_000.0, prDelta = -2_000.0, distanceLeft = 1_400.0, totalDistance = 1_500.0), 3_000)!!
+        assertEquals(SegmentPhase.ON, on.phase)
+        assertEquals(1 / 15f, on.reading.progress!!, 1e-4f)
+        // The streams stop: the last values stay up as the result for 10 s.
+        val done = t.update(null, 60_000)!!
+        assertEquals(SegmentPhase.DONE, done.phase)
+        assertEquals(-2_000.0, done.reading.prDelta!!, 1e-9)
+        assertEquals(SegmentPhase.DONE, t.update(null, 69_999)!!.phase)
+        assertNull(t.update(null, 70_000))
+    }
+
+    @Test fun gapsReadAheadOrBehind() {
+        assertEquals("-0:07", SegmentTracker.delta(-7_000.0))
+        assertEquals("+1:12", SegmentTracker.delta(72_400.0))
+        assertEquals("+0:00", SegmentTracker.delta(0.0))
+        assertEquals("--", SegmentTracker.delta(null))
     }
 }

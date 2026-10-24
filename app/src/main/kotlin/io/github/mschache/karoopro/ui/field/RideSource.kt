@@ -4,6 +4,7 @@ import io.github.mschache.karoopro.AppGraph
 import io.github.mschache.karoopro.calc.ClimbView
 import io.github.mschache.karoopro.calc.Gearing
 import io.github.mschache.karoopro.calc.ProfilePoint
+import io.github.mschache.karoopro.calc.SegmentState
 import io.github.mschache.karoopro.calc.WorkoutState
 import io.github.mschache.karoopro.coach.CoachInfo
 import io.github.mschache.karoopro.coach.PlanStep
@@ -47,6 +48,8 @@ interface RideSource {
     fun terrainAhead(meters: Double): List<ProfilePoint>
     /** The climb the rider is on or the next one on the navigated route; null without one. */
     val climb: ClimbView?
+    /** The Strava Live Segment coming up, running or just finished; null otherwise. */
+    val segment: SegmentState?
     val workout: WorkoutState?
     /** The planned step after the running one, when Karoo Coach's relay matched the workout. */
     val workoutNext: PlanStep?
@@ -83,6 +86,7 @@ class LiveSource(private val g: AppGraph) : RideSource {
 
     override fun terrainAhead(meters: Double): List<ProfilePoint> = g.routes.terrainAhead(meters)
     override val climb get() = g.routes.climbView()
+    override val segment get() = g.segments.state.value
 
     override val workout get() = g.workout.state.value
     override val workoutNext get() = g.workout.next.value

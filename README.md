@@ -11,6 +11,7 @@ Below that is a panel you flip with a tap on its left or right side.
 | **Ride** | Four tiles you choose, each with a 5-minute mini graph |
 | **Effort** | 10-minute effort bars colored by zone, W′ balance, grade, VAM, ascent, terrain profile (the route ahead while navigating) |
 | **Climb** | While you navigate a route with climbs: opens by itself 200 m before each climb and goes back at the top. Climb number, distance and height to the top, average grade left, grade, VAM, time to the top, how long your W′ lasts at this power, and the climb's profile colored by grade. Before a climb it shows how far away it is, its length, gain, average and steepest grade |
+| **Segment** | Opens by itself when a Strava Live Segment comes up: the gap to your PR in big type (green ahead, red behind), the gap to the KOM, progress, time, distance and climbing left, then your result for 10 seconds |
 | **Weather** | Head, tail or crosswind for your direction of travel, gusts, rain chance, temperature, and the next 6 hours (Open-Meteo) |
 | **Lap** | Four lap fields with ▲/▼ against the previous lap |
 | **Analysis** | Best 5 s / 1 min / 5 min / 20 min power, time in zones, NP, TSS, IF, climbing, work |
@@ -104,7 +105,7 @@ You can also map **KarooPRO: next panel**, **previous panel** or **switch the bi
 ## Settings
 
 Open the **KarooPRO** app on the Karoo to:
-- Hide or reorder panels, and choose whether Workout, Bike, Coach and Climb open by themselves.
+- Hide or reorder panels, and choose whether Workout, Bike, Coach, Climb and Segment open by themselves.
 - Pick which big numbers the tap switches between and which one it starts on, the two cards under it, the zone color style (tint the page, fill the top, or color the number) and the theme.
 - Choose the 4 Ride tiles and the 4 Lap fields.
 - Set CP and W′ for W′ balance (CP defaults to your Karoo FTP; W′ to 20 kJ).
@@ -117,6 +118,7 @@ Open the **KarooPRO** app on the Karoo to:
 
 - **Next workout step.** The Karoo shares only the running workout step. The countdown to the next step is exact, but its target normally appears when the step starts. With [Karoo Coach](#karoo-coach) set up, and a workout from your intervals.icu plan or pushed through the coach, the Workout panel and the 10-second alert show the next step's duration and power target ahead of time (for example "NEXT 4:00 @ 280 W").
 - **Weather.** Weather comes from [Open-Meteo](https://open-meteo.com). It needs WiFi or the Companion app, and is fetched only while the Weather panel, a wind tile or card, or a wind field is in use: every 15 minutes, or after 3 km.
+- **Live Segments.** The Segment panel needs Strava Live Segments on the Karoo (a Strava subscription, with starred segments synced). The Karoo may also show its own segment screen; swipe back to the KarooPRO page to see the panel.
 - **Battery levels.** Di2/AXS and power-meter batteries are shown as the levels the Karoo reports (new, good, OK, low, critical), not percentages.
 - **Rendering.** The field is drawn as a single image about once per second, the Karoo's limit for extension views. When its page is not on screen, it stops drawing.
 

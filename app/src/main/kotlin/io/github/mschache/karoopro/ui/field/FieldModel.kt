@@ -126,6 +126,23 @@ data class ClimbContent(
     val message: String? = null,
 ) : PanelContent
 
+data class SegmentContent(
+    /** "SEGMENT", "SEGMENT IN 320 m" or "SEGMENT DONE". */
+    val title: String,
+    /** Large: the gap to your PR (your PR time before the start). */
+    val main: Stat,
+    /** True when ahead (green), false when behind (red), null when it isn't a gap. */
+    val mainAhead: Boolean?,
+    /** The gap to the KOM (the KOM time before the start). */
+    val second: Stat,
+    val secondAhead: Boolean?,
+    /** 0..1 through the segment, when known. */
+    val progress: Float?,
+    val stats: List<Stat>,
+    /** Shown instead of everything else when there's no segment. */
+    val message: String? = null,
+) : PanelContent
+
 data class HourModel(val label: String, val speed: String, val relativeToDeg: Float?, val kind: WindKind?)
 
 data class WeatherContent(
