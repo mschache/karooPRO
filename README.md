@@ -1,6 +1,12 @@
-# KarooPRO — ride by effort on your Karoo
+# KarooPRO: ride by effort on your Karoo
 
 KarooPRO is a free, open-source extension for the **Hammerhead Karoo 3** (and Karoo 2) that puts your whole ride on one page.
+
+<p>
+  <img src="docs/screenshot-1.png" width="240" alt="Ride panel, the top filled in the power zone color">
+  <img src="docs/screenshot-2.png" width="240" alt="Climb panel with the climb's profile by grade">
+  <img src="docs/screenshot-3.png" width="240" alt="Workout panel with the step target and PUSH">
+</p>
 
 The top of the page shows one big number: 3-second power, speed or heart rate, and optionally 10-second power, % FTP or W/kg. Tap it to switch between the ones you picked. Two cards sit right below: by default the two of power, speed and heart rate that aren't on top, or any two values you choose. The number and the page are colored by your training zone, so you feel your effort before you read it.
 
@@ -54,11 +60,11 @@ With no power meter, KarooPRO starts on speed and colors by heart rate.
 **Your FIT file** gets KarooPRO's own values as developer fields every second: W′ balance, carbs burned and eaten, stamina and headwind, plus the carb totals for the ride. intervals.icu shows them as extra charts.
 
 <p>
-  <img src="docs/screenshot-1.png" width="240" alt="Workout panel">
-  <img src="docs/screenshot-2.png" width="240" alt="Effort panel">
-  <img src="docs/screenshot-3.png" width="240" alt="Bike panel">
-  <img src="docs/screenshot-weather.png" width="240" alt="Weather panel">
-  <img src="docs/screenshot-alert.png" width="240" alt="Next-step countdown">
+  <img src="docs/screenshot-pace.png" width="240" alt="Pace panel with the target for this stretch">
+  <img src="docs/screenshot-fuel.png" width="240" alt="Fuel panel with carbs eaten and burned">
+  <img src="docs/screenshot-segment.png" width="240" alt="Segment panel with the gap to your PR">
+  <img src="docs/screenshot-weather.png" width="240" alt="Weather panel with the wind for your direction">
+  <img src="docs/screenshot-alert.png" width="240" alt="Next workout step countdown">
 </p>
 
 ## Map layers

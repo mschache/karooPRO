@@ -95,6 +95,26 @@ class MainActivity : ComponentActivity() {
                 for ((name, size) in listOf("strip-wide" to (478 to 150), "strip-half" to (236 to 160))) {
                     java.io.File(dir, "$name.png").outputStream().use { painter.paintStrip(strip, size.first, size.second).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                 }
+                // Store and README screenshots (docs/): default settings, the hero filled on the first.
+                data class Shot(val name: String, val panel: Panel, val t: Long, val mode: io.github.mschache.karoopro.data.ColorMode, val overlay: Int = 0)
+                val tint = io.github.mschache.karoopro.data.ColorMode.TINT
+                for (shot in listOf(
+                    Shot("screenshot-1", Panel.RIDE, 0, io.github.mschache.karoopro.data.ColorMode.FILL),
+                    Shot("screenshot-2", Panel.CLIMB, 24, tint),
+                    Shot("screenshot-3", Panel.WORKOUT, 120, tint),
+                    Shot("screenshot-pace", Panel.PACE, 48, tint),
+                    Shot("screenshot-fuel", Panel.FUEL, 60, tint),
+                    Shot("screenshot-segment", Panel.SEGMENT, 36, tint),
+                    Shot("screenshot-weather", Panel.WEATHER, 72, tint),
+                    Shot("screenshot-alert", Panel.WORKOUT, 120, tint, overlay = 1),
+                )) {
+                    val s = io.github.mschache.karoopro.data.Settings(colorMode = shot.mode)
+                    val model = io.github.mschache.karoopro.ui.field.FieldModelBuilder.build(
+                        io.github.mschache.karoopro.ui.field.DemoSource(s, graph.hub.profile.value, t = shot.t, overlayMode = shot.overlay),
+                        shot.panel, Panel.entries, w / density, h / density, density, interactive = false, systemDark = true,
+                    )
+                    java.io.File(dir, "${shot.name}.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                }
                 android.util.Log.i("KarooPRO", "exportshots written to $dir")
             }
         }

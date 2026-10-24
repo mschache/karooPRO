@@ -36,10 +36,13 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.mschache.karoopro.BuildConfig
+import io.github.mschache.karoopro.R
 import io.github.mschache.karoopro.calc.FuelItem
 import io.github.mschache.karoopro.data.AlertStyle
 import io.github.mschache.karoopro.data.BigMetric
@@ -54,18 +57,21 @@ import kotlinx.coroutines.launch
 @Composable
 fun HomeScreen(open: (Screen) -> Unit) {
     Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("KarooPRO", fontSize = 30.sp, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+        // The wordmark in the field's own typeface.
+        Text("KarooPRO", fontSize = 34.sp, fontFamily = Oswald, color = MaterialTheme.colorScheme.primary)
         Text("Ride by effort", fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground)
         Text(
-            "Add a ride page with one field and choose KarooPRO. Tap the top to switch power, speed and heart rate; tap the left or right of the panel to flip.",
+            "Add a one-field ride page and choose KarooPRO. Tap the top to switch numbers, the sides to flip\u00A0panels.",
             fontSize = 13.sp,
             color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
         )
         Button(onClick = { open(Screen.PREVIEW) }, modifier = Modifier.fillMaxWidth()) { Text("Preview") }
-        Button(onClick = { open(Screen.SETTINGS) }, modifier = Modifier.fillMaxWidth()) { Text("Settings") }
-        OutlinedButton(onClick = { open(Screen.ABOUT) }, modifier = Modifier.fillMaxWidth()) { Text("About") }
+        OutlinedButton(onClick = { open(Screen.SETTINGS) }, modifier = Modifier.fillMaxWidth()) { Text("Settings") }
+        TextButton(onClick = { open(Screen.ABOUT) }, modifier = Modifier.fillMaxWidth()) { Text("About") }
     }
 }
+
+private val Oswald = FontFamily(Font(R.font.oswald_bold, FontWeight.Bold))
 
 @Composable
 fun AboutScreen() {
