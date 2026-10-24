@@ -126,7 +126,8 @@ class WorkoutTracker(
     fun update(sample: WorkoutSample?, nowMs: Long): List<WorkoutEvent> {
         val events = mutableListOf<WorkoutEvent>()
         val idx = sample?.stepIndex
-        if (sample == null || sample.stepCount <= 0 || idx == null) {
+        // Past the last step is a finished workout, whatever else the streams still say.
+        if (sample == null || sample.stepCount <= 0 || idx == null || idx >= sample.stepCount) {
             if (active) {
                 lastFinished = finishStep(nowMs)
                 events += WorkoutEvent.Finished

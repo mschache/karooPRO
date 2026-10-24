@@ -8,7 +8,7 @@ import io.github.mschache.karoopro.calc.WorkoutState
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import kotlin.math.abs
-import kotlin.math.roundToInt
+import kotlin.math.round
 
 /** A message from Karoo Coach; [receivedAt] is when the Karoo got it (epoch ms). */
 data class CoachMessage(val id: String, val title: String, val text: String, val receivedAt: Long)
@@ -29,10 +29,14 @@ data class PlanStep(
     val lowPct: Double? = null,
     val highPct: Double? = null,
 ) {
-    /** Watts from the % of FTP targets with the Karoo's [ftp] when the relay sent none, as the Karoo does for the step itself. */
+    /**
+     * Watts from the % of FTP targets with the Karoo's [ftp] when the relay sent none. Halves round
+     * to even, as on the Karoo's own workout screen: 105 % of 250 W is 262 W there and here.
+     */
     fun inWatts(ftp: Int): PlanStep {
         if (low != null || lowPct == null || ftp <= 0) return this
-        return copy(low = (lowPct * ftp / 100).roundToInt(), high = ((highPct ?: lowPct) * ftp / 100).roundToInt())
+        fun watts(pct: Double) = round(pct * ftp / 100).toInt()
+        return copy(low = watts(lowPct), high = watts(highPct ?: lowPct))
     }
 }
 

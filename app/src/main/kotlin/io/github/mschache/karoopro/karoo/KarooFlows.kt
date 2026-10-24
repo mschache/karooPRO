@@ -2,6 +2,7 @@ package io.github.mschache.karoopro.karoo
 
 import io.hammerhead.karooext.KarooSystemService
 import io.hammerhead.karooext.models.DataPoint
+import io.hammerhead.karooext.models.DataType
 import io.hammerhead.karooext.models.KarooEvent
 import io.hammerhead.karooext.models.OnStreamState
 import io.hammerhead.karooext.models.StreamState
@@ -23,11 +24,24 @@ inline fun <reified T : KarooEvent> KarooSystemService.consumerFlow(): Flow<T> =
     awaitClose { removeConsumer(id) }
 }
 
-/** The value of [field] in a streaming state, falling back to the only value for single-field types. */
+/**
+ * The value of [field] in a streaming state, falling back to the only value for single-field types.
+ * A point that carries only a status (a finished workout sends just WORKOUT_STATE) has no value.
+ */
 fun StreamState?.field(field: String?): Double? {
     val point: DataPoint = (this as? StreamState.Streaming)?.dataPoint ?: return null
     val value = if (field != null) point.values[field] else null
-    return (value ?: if (point.values.size == 1) point.singleValue else null)?.takeIf { it.isFinite() }
+    val only = point.values.keys.singleOrNull()
+    val fallback = if (only != null && only !in STATUS_FIELDS) point.singleValue else null
+    return (value ?: fallback)?.takeIf { it.isFinite() }
 }
+
+private val STATUS_FIELDS = setOf(
+    DataType.Field.WORKOUT_STATE,
+    DataType.Field.NAVIGATION_STATE,
+    DataType.Field.ON_ROUTE,
+    DataType.Field.REROUTING_ENABLED,
+    DataType.Field.SEGMENT_OFF_TIME_REMAINING,
+)
 
 val StreamState?.isStreaming: Boolean get() = this is StreamState.Streaming

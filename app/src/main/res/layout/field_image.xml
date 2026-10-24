@@ -1,7 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!-- A painted field image, clipped to the rounded box the Karoo draws around every field (Android 12+). -->
 <ImageView xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
     android:id="@+id/field_image"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:background="@drawable/field_outline"
+    android:clipToOutline="true"
     android:importantForAccessibility="no"
-    android:scaleType="fitXY" />
+    android:scaleType="fitXY"
+    tools:targetApi="31" />

@@ -258,9 +258,11 @@ class CoachPlanTest {
     @Test fun percentOfFtpBecomesWattsWithTheKaroosFtp() {
         val noFtp = CoachPlan.parse("""{"count":8,"index":0,"steps":[{"index":1,"seconds":60,"low":null,"high":null,"lowPct":105.0,"highPct":105.0}]}""")!!
         val step = noFtp.nextFor(0, 8, 0)!!.inWatts(250)
-        assertEquals(263, step.low)
-        assertEquals(263, step.high)
-        assertEquals("1:00 @ 263 W", PlanText.summary(step))
+        // The Karoo's own workout screen shows 262 W and 138 W for these.
+        assertEquals(262, step.low)
+        assertEquals(262, step.high)
+        assertEquals("1:00 @ 262 W", PlanText.summary(step))
+        assertEquals(138, PlanStep(2, 45, lowPct = 55.0, highPct = 55.0).inWatts(250).low)
         // Watts from the relay win; a free ride stays open.
         assertEquals(280, PlanStep(1, 60, 280, 280, lowPct = 105.0).inWatts(250).low)
         assertNull(PlanStep(1, 60).inWatts(250).low)

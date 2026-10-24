@@ -256,6 +256,13 @@ class WorkoutTrackerTest {
         assertEquals(3, events.filterIsInstance<WorkoutEvent.Countdown>().first().nextStepNumber)
     }
 
+    @Test fun aStepPastTheLastIsAFinishedWorkout() {
+        val t = WorkoutTracker()
+        t.update(sample(7, 5_000, count = 8), 0)
+        assertTrue(t.update(sample(3, 0, count = 3), 1_000).contains(WorkoutEvent.Finished))
+        assertNull(t.state)
+    }
+
     @Test fun noCountdownOnLastStepAndFinishEvent() {
         val t = WorkoutTracker()
         val events = mutableListOf<WorkoutEvent>()
