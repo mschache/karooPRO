@@ -13,7 +13,7 @@ val appVersionName: String = providers.gradleProperty("karoopro.version").get()
 val appVersionCode: Int = appVersionName.split(".").map { it.toInt() }.let { (major, minor, patch) ->
     major * 10_000 + minor * 100 + patch
 }
-val releaseBaseUrl = "https://github.com/mschache/karooPRO/releases/latest/download"
+val releaseBaseUrl = "https://github.com/mschache/pangu-dash/releases/latest/download"
 
 // Release signing comes from env vars (CI), an untracked keystore.properties, or ~/.karoopro (local).
 val signingProps = Properties().apply {

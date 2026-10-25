@@ -94,7 +94,7 @@ Pangu Coach is a separate extension that lets an AI coach (Claude, from your pho
 ## Install
 
 **Karoo 3, with the Companion app:**
-1. On your phone, open the [latest release](https://github.com/mschache/karooPRO/releases/latest).
+1. On your phone, open the [latest release](https://github.com/mschache/pangu-dash/releases/latest).
 2. Long-press `app-release.apk` and share the link to the **Hammerhead Companion** app.
 3. Confirm the install on the Karoo. The Karoo must be on WiFi.
 4. Later versions appear as updates in the Karoo's extension list.
