@@ -94,6 +94,23 @@ object TargetBand {
         output > bounds.second -> TargetStatus.EASE
         else -> TargetStatus.IN_RANGE
     }
+
+    /** "PUSH +6 W", "EASE −12 W" or "IN RANGE": what to change to reach the band. */
+    fun cue(status: TargetStatus, output: Int?, low: Int?, high: Int?, unit: String): String {
+        val gap = when {
+            output == null || low == null || high == null -> null
+            status == TargetStatus.PUSH -> low - output
+            status == TargetStatus.EASE -> output - high
+            else -> null
+        }
+        val amount = gap?.takeIf { it > 0 }?.let { " $it" + if (unit.isNotEmpty()) " $unit" else "" }
+        return when (status) {
+            TargetStatus.PUSH -> amount?.let { "PUSH +${it.trim()}" } ?: "PUSH ▲"
+            TargetStatus.EASE -> amount?.let { "EASE −${it.trim()}" } ?: "EASE ▼"
+            TargetStatus.IN_RANGE -> "IN RANGE"
+            TargetStatus.NO_DATA -> "--"
+        }
+    }
 }
 
 /**

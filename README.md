@@ -10,24 +10,24 @@ Pangu Dash is a free, open-source extension for the **Hammerhead Karoo 3** (and 
   <img src="docs/screenshot-3.png" width="240" alt="Workout panel with the step target and PUSH">
 </p>
 
-The top of the page shows one big number: 3-second power, speed or heart rate, and optionally 10-second power, % FTP or W/kg. Tap it to switch between the ones you picked. Two cards sit right below: by default the two of power, speed and heart rate that aren't on top, or any two values you choose. The number and the page are colored by your training zone, so you feel your effort before you read it.
+The top of the page shows one big number: 3-second power, speed or heart rate, and optionally 10-second power, % FTP or W/kg. Tap it to switch between the ones you picked. Two cards sit right below: by default the two of power, speed and heart rate that aren't on top, or any two values you choose. The number and the page are colored by your training zone, so you feel your effort before you read it. A slim line above it shows sunset and the temperature, which the Karoo's own top bar doesn't.
 
 Below that is a panel you flip with a tap on its left or right side.
 
 | Panel | What it shows |
 |---|---|
-| **Ride** | Four tiles you choose, each with a 5-minute mini graph |
+| **Ride** | Four tiles you choose, each with an icon, a colored side bar and a small graphic that fits the value: ride time in hours (or the way to your arrival while navigating), distance along the route, calories per 10 minutes, cadence against your target band, or a 5-minute mini graph |
 | **Effort** | 10-minute effort bars colored by zone, W′ balance, grade, VAM, ascent, terrain profile (the route ahead while navigating) |
 | **Climb** | While you navigate a route with climbs: opens by itself 200 m before each climb and goes back at the top. Climb number, distance and height to the top, average grade left, grade, VAM, time to the top, how long your W′ lasts at this power, and the climb's profile colored by grade. Before a climb it shows how far away it is, its length, gain, average and steepest grade |
 | **Segment** | Opens by itself when a Strava Live Segment comes up: the gap to your PR in big type (green ahead, red behind), the gap to the KOM, progress, time, distance and climbing left, then your result for 10 seconds |
 | **Pace** | While you navigate a route: a Power Guide-style target power for the stretch you're on (more on climbs, less on descents), PUSH / EASE, time ahead of or behind the plan, arrival time, time to go, stamina, and the next change of target |
 | **Fuel** | Carbs eaten versus burned (estimated from your power), whether you keep up with your target, and when to eat and drink next. A tap in the middle logs a gel (or a bar or bottle, as you choose). Beeps when it's time to eat or drink |
 | **Weather** | Head, tail or crosswind for your direction of travel, gusts, rain chance, temperature, and the next 6 hours (Open-Meteo) |
-| **Lap** | Four lap fields with ▲/▼ against the previous lap |
+| **Lap** | Four lap fields; averages show the change against the previous lap, such as +20 W |
 | **Analysis** | Best 5 s / 1 min / 5 min / 20 min power, time in zones, NP, TSS, IF, climbing, work |
 | **Results** | Appears after your first finished climb or segment: each one with its time, average power, W/kg and VAM, or the gaps to your PR and KOM, newest first |
-| **Workout** | Opens by itself during a structured workout: step, time left, target with PUSH / EASE / IN RANGE (the color shades from green to blue or red as you drift off), step average, time in target, and the next step's target when Pangu Coach knows your plan |
-| **Bike** | Opens by itself when Di2 or AXS connects: gears, drivetrain with cross-chain warning, batteries, L/R balance, shifts, ratio. Beeps when you shift onto the smallest cog (two high blips) or the largest (two low ones) |
+| **Workout** | Opens by itself during a structured workout: step, time left, target with PUSH / EASE and the gap (such as +6 W), or IN RANGE (the color shades from green to blue or red as you drift off), step average, time in target, and the next step's target when Pangu Coach knows your plan |
+| **Bike** | Opens by itself when Di2 or AXS connects: gears, drivetrain with chain line OK or a cross-chain warning, batteries, L/R balance, shifts, ratio. Beeps when you shift onto the smallest cog (two high blips) or the largest (two low ones) |
 | **Coach** | Appears when the [Pangu Coach](#karoocoach) extension is installed and set up: your coach's latest message in big type, how old it is, and whether check-ins work. Opens by itself on a new message; tap it to confirm |
 
 With no power meter, Pangu Dash starts on speed and colors by heart rate.

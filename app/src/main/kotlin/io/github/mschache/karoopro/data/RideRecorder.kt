@@ -3,6 +3,8 @@ package io.github.mschache.karoopro.data
 import android.content.Context
 import android.util.Log
 import io.github.mschache.karoopro.calc.BestEfforts
+import io.github.mschache.karoopro.calc.BlockState
+import io.github.mschache.karoopro.calc.BlockTotals
 import io.github.mschache.karoopro.calc.FuelDue
 import io.github.mschache.karoopro.calc.FuelItem
 import io.github.mschache.karoopro.calc.FuelSnapshot
@@ -49,6 +51,8 @@ class RideRecorder(
     val terrain = TerrainHistory()
     val stamina = StaminaModel()
     val fuel = FuelTracker()
+    /** The Karoo's calories per 10 minutes of riding, for the Ride tile's bars. */
+    val calorieBlocks = BlockTotals(CALORIE_BLOCK_SECONDS)
     private var lastCalories: Double? = null
 
     private val _fuelDue = MutableSharedFlow<FuelDue>(extraBufferCapacity = 2)
@@ -146,6 +150,7 @@ class RideRecorder(
             val hrIntensity = hub.value(Metric.HR_PERCENT_MAX)?.let { FuelTracker.hrIntensity(it) }
             fuel.addSecond(if (powerNow) power ?: 0.0 else null, profile.ftp.toDouble(), kcal, hrIntensity)
             if (s.fuelReminders) fuel.due(s.carbsPerHour, s.fuelSizes, s.drinkMlPerHour)?.let { _fuelDue.tryEmit(it) }
+            calorieBlocks.add(calories)
             history.forEach { (metric, h) -> h.add(hub.value(metric)) }
             terrain.add(hub.value(Metric.DISTANCE), hub.value(Metric.ELEVATION))
         }
@@ -167,6 +172,7 @@ class RideRecorder(
         terrain.reset()
         stamina.reset()
         fuel.reset()
+        calorieBlocks.reset()
         lastCalories = null
         hasPower = false
         scope.launch { store.clear() }
@@ -185,6 +191,7 @@ class RideRecorder(
                 terrain = terrain.all().map { listOf(it.distance, it.elevation) },
                 staminaUsed = stamina.used,
                 fuel = fuel.state,
+                calorieBlocks = calorieBlocks.state,
             )
         }
         store.save(snapshot)
@@ -206,6 +213,7 @@ class RideRecorder(
                 terrain.restore(snap.terrain.filter { it.size == 2 }.map { ProfilePoint(it[0], it[1]) })
                 stamina.restore(snap.staminaUsed)
                 fuel.restore(snap.fuel)
+                calorieBlocks.restore(snap.calorieBlocks)
             }
             Log.i(TAG, "Restored ride snapshot from ${snap.savedAt}")
         }
@@ -215,6 +223,7 @@ class RideRecorder(
         const val TAG = "KarooPRO"
         /** 10 minutes of 1 Hz history: effort bars and mini graphs. */
         const val HISTORY_SECONDS = 600
+        const val CALORIE_BLOCK_SECONDS = 600
     }
 }
 
@@ -230,6 +239,7 @@ data class RecorderSnapshot(
     val terrain: List<List<Double>>,
     val staminaUsed: Double = 0.0,
     val fuel: FuelSnapshot = FuelSnapshot(),
+    val calorieBlocks: BlockState = BlockState(),
 )
 
 /** Keeps the recorder state on disk so a process restart mid-ride does not lose it. */

@@ -82,10 +82,15 @@ data class HeroModel(
     val dimColor: Int,
     val stats: List<Stat>,
     val cards: List<CardModel>,
+    /** The line over the pills with what the Karoo's own top bar lacks; null when switched off. */
+    val status: StatusLine? = null,
 ) {
     /** The hero is filled with the zone color, so anything drawn in that color needs its own backing. */
     val filled: Boolean get() = zoneColor != null && background == zoneColor
 }
+
+/** Sunset as a time of day ("18:42") and the temperature ("19°"); either may be missing. */
+data class StatusLine(val sunset: String?, val temperature: String?)
 
 data class Stat(val label: String, val value: String, val unit: String = "", val accent: Int? = null)
 
@@ -93,7 +98,39 @@ data class CardModel(val label: String, val value: String, val unit: String, val
 
 sealed interface PanelContent
 
-data class TileModel(val label: String, val value: String, val unit: String, val graph: List<Float?>?, val graphColor: Int)
+/**
+ * One Ride tile: [icon] and a side bar in [accent], the unit top right, the value, and [graphic]
+ * at the bottom. [label] shows when there's no icon, or when [showLabel] because the icon alone
+ * doesn't name the value (average, max, lap...).
+ */
+data class TileModel(
+    val label: String,
+    val value: String,
+    val unit: String,
+    val graphic: TileGraphic?,
+    val graphColor: Int,
+    val icon: TileIcon? = null,
+    val accent: Int = graphColor,
+    val showLabel: Boolean = true,
+)
+
+/** What a Ride tile draws under its value. */
+sealed interface TileGraphic {
+    /** 1 Hz history, oldest first, as a line. */
+    data class Line(val values: List<Float?>) : TileGraphic
+
+    /** Equal segments, each filled 0..1: hours ridden, or the way to the arrival. */
+    data class Segments(val fills: List<Float>) : TileGraphic
+
+    /** Progress along the navigated route, 0..1: a dotted line with a marker. */
+    data class Route(val fraction: Float) : TileGraphic
+
+    /** One bar per block, oldest first; the last is the running one. */
+    data class Bars(val values: List<Float>) : TileGraphic
+
+    /** Ticks from [min] to [max] with the target band [low]..[high] marked and [value] lit. */
+    data class Band(val value: Float?, val low: Float, val high: Float, val min: Float, val max: Float) : TileGraphic
+}
 
 data class RideContent(val tiles: List<TileModel>) : PanelContent
 
@@ -197,7 +234,8 @@ data class WeatherContent(
     val hours: List<HourModel>,
 ) : PanelContent
 
-data class LapFieldModel(val label: String, val value: String, val unit: String, val previous: String?, val trend: Trend)
+/** [delta] is the change against the previous lap ("+20"), for averages only. */
+data class LapFieldModel(val label: String, val value: String, val unit: String, val previous: String?, val trend: Trend, val delta: String? = null)
 
 data class LapContent(val title: String, val fields: List<LapFieldModel>) : PanelContent
 

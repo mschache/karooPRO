@@ -259,6 +259,30 @@ class FieldPainter(context: Context) {
     /** Smaller pieces inside the hero (zone badge, ladder backing). */
     private fun chipCorner(m: FieldModel) = m.density * CHIP_CORNER_DP
 
+    /** Each icon's path in its 960-unit box, parsed once. */
+    private val iconPaths = HashMap<TileIcon, Path>()
+
+    private fun iconPath(icon: TileIcon): Path = iconPaths.getOrPut(icon) {
+        val path = Path()
+        SvgPath.parse(icon.path, object : PathSink {
+            // The Material Symbols box runs from y = -960 to 0.
+            override fun moveTo(x: Float, y: Float) = path.moveTo(x, y + 960f)
+            override fun lineTo(x: Float, y: Float) = path.lineTo(x, y + 960f)
+            override fun quadTo(x1: Float, y1: Float, x: Float, y: Float) = path.quadTo(x1, y1 + 960f, x, y + 960f)
+            override fun close() = path.close()
+        })
+        path
+    }
+
+    /** [icon] filling the square of side [size] at ([x], [top]), in [color]. */
+    private fun icon(c: Canvas, icon: TileIcon, x: Float, top: Float, size: Float, color: Int) {
+        c.save()
+        c.translate(x, top)
+        c.scale(size / 960f, size / 960f)
+        c.drawPath(iconPath(icon), fill(color))
+        c.restore()
+    }
+
     private fun row(r: RectF, n: Int, gap: Float): List<RectF> {
         val w = (r.width() - gap * (n - 1)) / n
         return (0 until n).map { i -> RectF(r.left + i * (w + gap), r.top, r.left + i * (w + gap) + w, r.bottom) }
@@ -281,7 +305,12 @@ class FieldPainter(context: Context) {
         val p = m.palette
         c.drawRect(r, fill(h.background))
         val pad = r.width() * 0.025f
-        val (pillsR, bigR, cardsR) = splitV(RectF(r.left + pad, r.top + pad * 0.6f, r.right - pad, r.bottom - pad * 0.6f), 0.15f, 0.55f, 0.30f, gap = pad * 0.5f)
+        val area = RectF(r.left + pad, r.top + pad * 0.6f, r.right - pad, r.bottom - pad * 0.6f)
+        val (pillsR, bigR, cardsR) = h.status?.let { st ->
+            val (statusR, rest) = splitV(area, 0.065f, 0.935f, gap = pad * 0.3f)
+            statusLine(c, st, statusR, h.dimColor)
+            splitV(rest, 0.15f, 0.55f, 0.30f, gap = pad * 0.5f)
+        } ?: splitV(area, 0.15f, 0.55f, 0.30f, gap = pad * 0.5f)
 
         // Pills: all of them up to three, else the big number on top and the one a tap brings next.
         val pillH = pillsR.height()
@@ -342,6 +371,22 @@ class FieldPainter(context: Context) {
 
         // Cards
         row(cardsR, h.cards.size, pad).forEachIndexed { i, cr -> heroCard(c, m, h.cards[i], cr) }
+    }
+
+    /** Sunset and temperature, right-aligned like a phone's status bar, each behind its icon. */
+    private fun statusLine(c: Canvas, st: StatusLine, r: RectF, color: Int) {
+        val cap = r.height() * 0.62f
+        val top = r.top + (r.height() - cap) / 2
+        val iconSize = r.height() * 1.0f
+        val iconTop = r.centerY() - iconSize / 2
+        var right = r.right
+        // Right to left: the temperature at the edge, the sunset before it.
+        for ((glyph, text) in listOf(TileIcon.THERMOMETER to st.temperature, TileIcon.SUNSET to st.sunset)) {
+            if (text == null) continue
+            val w = label(c, text, right, top, cap, color, Paint.Align.RIGHT, face = medium, steady = true)
+            icon(c, glyph, right - w - iconSize * 1.05f, iconTop, iconSize, color)
+            right -= w + iconSize * 1.05f + r.height() * 0.8f
+        }
     }
 
     private fun heroCard(c: Canvas, m: FieldModel, card: CardModel, r: RectF) {
@@ -441,25 +486,131 @@ class FieldPainter(context: Context) {
     }
 
     private fun ride(c: Canvas, m: FieldModel, content: RideContent, r: RectF) {
-        val p = m.palette
         val gap = r.width() * 0.015f
         val rows = splitV(r, 1f, 1f, gap = gap)
         rows.forEachIndexed { ri, rowR ->
             row(rowR, 2, gap).forEachIndexed { ci, tr ->
-                val t = content.tiles.getOrNull(ri * 2 + ci) ?: return@forEachIndexed
-                card(c, tr, p.card, cardCorner(m))
-                val pad = tr.width() * 0.05f
-                label(c, t.label, tr.left + pad, tr.top + tr.height() * 0.09f, tr.height() * 0.1f, p.dim, maxWidth = tr.width() - 2 * pad, face = medium)
-                number(c, t.value, t.unit, RectF(tr.left + pad, tr.top + tr.height() * 0.26f, tr.right - pad, tr.top + tr.height() * 0.66f), p.text, p.dim, 0.86f, unitScale = 0.3f)
-                t.graph?.let { g ->
-                    c.save()
-                    c.clipRect(tr)
-                    sparkline(c, g, RectF(tr.left, tr.top + tr.height() * 0.7f, tr.right, tr.bottom), t.graphColor, p.card)
-                    c.restore()
-                }
+                content.tiles.getOrNull(ri * 2 + ci)?.let { tile(c, m, it, tr) }
             }
         }
     }
+
+    /**
+     * A Ride tile: a side bar and icon in the value's color, the label beside the icon when the
+     * icon alone doesn't name it, the unit top right, the value, and a small graphic at the bottom.
+     */
+    private fun tile(c: Canvas, m: FieldModel, t: TileModel, tr: RectF) {
+        val p = m.palette
+        val radius = cardCorner(m)
+        card(c, tr, p.card, radius)
+        val bar = tr.width() * 0.025f
+        c.save()
+        c.clipRect(tr.left, tr.top, tr.left + bar, tr.bottom)
+        c.drawRoundRect(tr, radius, radius, fill(t.accent))
+        c.restore()
+        val pad = tr.width() * 0.06f
+        val left = tr.left + bar + pad * 0.8f
+        val right = tr.right - pad
+        val headTop = tr.top + tr.height() * 0.07f
+        val headH = tr.height() * 0.19f
+        val cap = headH * 0.5f
+        val unitW = label(c, t.unit, right, headTop + (headH - cap) / 2, cap, p.dim, Paint.Align.RIGHT, face = medium)
+        var x = left
+        t.icon?.let {
+            icon(c, it, x - headH * 0.08f, headTop, headH, t.accent)
+            x += headH * 1.12f
+        }
+        if (t.icon == null || t.showLabel) {
+            label(c, t.label, x, headTop + (headH - cap) / 2, cap, p.dim, maxWidth = (right - unitW - pad * 0.5f - x).coerceAtLeast(0f), face = medium)
+        }
+        number(c, t.value, "", RectF(left, tr.top + tr.height() * 0.3f, right, tr.top + tr.height() * 0.7f), p.text, p.dim, 0.9f)
+        val g = t.graphic ?: return
+        val gr = RectF(left, tr.top + tr.height() * 0.77f, right, tr.bottom - tr.height() * 0.09f)
+        val barsR = RectF(left, tr.top + tr.height() * 0.73f, right, tr.bottom - tr.height() * 0.08f)
+        c.save()
+        c.clipRect(tr)
+        when (g) {
+            is TileGraphic.Line -> sparkline(c, g.values, RectF(tr.left + bar, tr.top + tr.height() * 0.72f, tr.right, tr.bottom), t.graphColor, p.card)
+            is TileGraphic.Segments -> segments(c, g.fills, gr, p)
+            is TileGraphic.Route -> routeLine(c, g.fraction, gr, t.graphColor, p)
+            is TileGraphic.Bars -> blockBars(c, g.values, barsR, p)
+            is TileGraphic.Band -> bandTicks(c, g, gr, p)
+        }
+        c.restore()
+    }
+
+    /** Equal segments with gaps, each filled from the left by its share. */
+    private fun segments(c: Canvas, fills: List<Float>, r: RectF, p: Palette) {
+        if (fills.isEmpty()) return
+        val h = r.height() * 0.42f
+        val top = r.centerY() - h / 2
+        val gap = r.width() * 0.025f
+        val w = (r.width() - gap * (fills.size - 1)) / fills.size
+        fills.forEachIndexed { i, f ->
+            val left = r.left + i * (w + gap)
+            val seg = RectF(left, top, left + w, top + h)
+            c.drawRoundRect(seg, h * 0.3f, h * 0.3f, fill(p.faint))
+            if (f > 0f) c.drawRoundRect(RectF(left, top, left + w * f.coerceIn(0f, 1f), top + h), h * 0.3f, h * 0.3f, fill(p.text))
+        }
+    }
+
+    /** The route as a dotted line: solid in [color] up to the rider's ring, the finish as a dot. */
+    private fun routeLine(c: Canvas, fraction: Float, r: RectF, color: Int, p: Palette) {
+        val cy = r.centerY()
+        val ring = r.height() * 0.32f
+        val start = r.left + ring
+        val end = r.right - ring * 0.6f
+        val x = start + (end - start) * fraction.coerceIn(0f, 1f)
+        val dot = max(1.5f, r.height() * 0.07f)
+        var dx = x + ring * 1.6f
+        while (dx < end - dot * 3f) {
+            c.drawCircle(dx, cy, dot, fill(p.dim))
+            dx += dot * 4.5f
+        }
+        c.drawLine(r.left, cy, x - ring, cy, stroke(color, r.height() * 0.16f))
+        c.drawCircle(end, cy, ring * 0.55f, fill(p.text))
+        c.drawCircle(x, cy, ring * 0.82f, fill(p.card))
+        c.drawCircle(x, cy, ring * 0.82f, stroke(p.text, r.height() * 0.13f))
+    }
+
+    /** One bar per block, scaled to the largest: finished blocks gray, the running one bright. */
+    private fun blockBars(c: Canvas, values: List<Float>, r: RectF, p: Palette) {
+        if (values.isEmpty()) return
+        val slots = max(values.size, 8)
+        val slot = r.width() / slots
+        val w = slot * 0.6f
+        val top = values.max().coerceAtLeast(1f)
+        values.forEachIndexed { i, v ->
+            val h = r.height() * (0.15f + 0.85f * (v / top).coerceIn(0f, 1f))
+            val left = r.left + (slots - values.size + i) * slot + (slot - w) / 2
+            val color = if (i == values.lastIndex) p.text else p.dim
+            c.drawRoundRect(RectF(left, r.bottom - h, left + w, r.bottom), w * 0.2f, w * 0.2f, fill(color))
+        }
+    }
+
+    /** Ticks across the scale: the target band in green, the ticks up to the value lit, the value's tick tall. */
+    private fun bandTicks(c: Canvas, g: TileGraphic.Band, r: RectF, p: Palette) {
+        val n = 28
+        val step = r.width() / (n - 1)
+        val w = max(1.5f, step * 0.42f)
+        val now = g.value?.let { ((it - g.min) / (g.max - g.min) * (n - 1)).roundToIntCoerced(0, n - 1) }
+        for (i in 0 until n) {
+            val v = g.min + (g.max - g.min) * i / (n - 1)
+            val inBand = v >= g.low && v <= g.high
+            val lit = now != null && i <= now
+            val color = when {
+                inBand && lit -> p.good
+                inBand -> ZoneColors.blend(p.good, p.card, 0.45f)
+                lit -> p.text
+                else -> p.faint
+            }
+            val h = if (i == now) r.height() else r.height() * 0.62f
+            val x = r.left + i * step
+            c.drawRect(RectF(x - w / 2, r.centerY() - h / 2, x + w / 2, r.centerY() + h / 2), fill(color))
+        }
+    }
+
+    private fun Float.roundToIntCoerced(lo: Int, hi: Int): Int = kotlin.math.round(this).toInt().coerceIn(lo, hi)
 
     private fun sparkline(c: Canvas, values: List<Float?>, r: RectF, color: Int, background: Int) {
         val pts = values.withIndex().filter { it.value != null }
@@ -624,14 +775,27 @@ class FieldPainter(context: Context) {
                     Trend.NONE -> "" to p.dim
                 }
                 val arrowW = cr.width() * 0.16f
-                number(c, f.value, f.unit, RectF(cr.left + pad, cr.top + cr.height() * 0.3f, cr.right - pad - arrowW, cr.top + cr.height() * 0.72f), p.text, p.dim, 0.9f, unitScale = 0.3f)
-                if (arrowText.isNotEmpty()) {
+                // Averages show the change as a pill under the value; the rest keep the arrow beside it.
+                val numberRight = if (f.delta != null) cr.right - pad else cr.right - pad - arrowW
+                number(c, f.value, f.unit, RectF(cr.left + pad, cr.top + cr.height() * 0.3f, numberRight, cr.top + cr.height() * 0.72f), p.text, p.dim, 0.9f, unitScale = 0.3f)
+                if (f.delta != null) {
+                    pill(c, f.delta, cr.right - pad, cr.top + cr.height() * 0.73f, cr.height() * 0.21f, color)
+                } else if (arrowText.isNotEmpty()) {
                     val tp = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color; textSize = cr.height() * 0.28f; textAlign = Paint.Align.CENTER }
                     c.drawText(arrowText, cr.right - pad - arrowW / 2, cr.top + cr.height() * 0.64f, tp)
                 }
                 f.previous?.let { label(c, "PREV $it", cr.left + pad, cr.top + cr.height() * 0.8f, cr.height() * 0.1f, p.dim, face = medium) }
             }
         }
+    }
+
+    /** [text] in an outlined pill of [color], right edge at [right]. */
+    private fun pill(c: Canvas, text: String, right: Float, top: Float, height: Float, color: Int) {
+        val cap = height * 0.52f
+        val tw = steadyWidth(text, textPaint(color, cap / capRatio))
+        val pr = RectF(right - tw - height * 0.9f, top, right, top + height)
+        c.drawRoundRect(pr, height / 2, height / 2, stroke(color, max(1.5f, height * 0.08f)))
+        label(c, text, pr.centerX(), pr.centerY() - cap / 2, cap, color, Paint.Align.CENTER, steady = true)
     }
 
     private fun analysis(c: Canvas, m: FieldModel, a: AnalysisContent, r: RectF) {
@@ -661,13 +825,6 @@ class FieldPainter(context: Context) {
         TargetStatus.EASE -> p.bad
         TargetStatus.IN_RANGE -> p.good
         TargetStatus.NO_DATA -> p.dim
-    }
-
-    private fun statusLabel(s: TargetStatus) = when (s) {
-        TargetStatus.PUSH -> "PUSH ▲"
-        TargetStatus.EASE -> "EASE ▼"
-        TargetStatus.IN_RANGE -> "IN RANGE"
-        TargetStatus.NO_DATA -> "--"
     }
 
     /**
@@ -701,7 +858,7 @@ class FieldPainter(context: Context) {
         val target = if (s.low != null && s.high != null) "${s.low}–${s.high}" else Fmt.NONE
         val statusW = targetR.width() * 0.3f
         number(c, target, wc.unit, RectF(targetR.left + targetR.width() * 0.05f, targetR.top + targetR.height() * 0.12f, targetR.right - statusW, targetR.bottom - targetR.height() * 0.12f), p.text, p.dim, 0.82f, unitScale = 0.25f)
-        label(c, statusLabel(s.status), targetR.right - targetR.width() * 0.03f, targetR.centerY() - targetR.height() * 0.13f, targetR.height() * 0.26f, color, Paint.Align.RIGHT, statusW)
+        label(c, TargetBand.cue(s.status, s.output, s.low, s.high, wc.unit), targetR.right - targetR.width() * 0.03f, targetR.centerY() - targetR.height() * 0.13f, targetR.height() * 0.26f, color, Paint.Align.RIGHT, statusW)
 
         gauge(c, s.low, s.high, s.output, gaugeR, p, color)
 
@@ -832,7 +989,7 @@ class FieldPainter(context: Context) {
         }
         c.drawCircle(ringX, cy, h * 0.06f, fill(p.dim))
         label(c, teeth, (ringX + cassX) / 2, r.top + h * 0.02f, h * 0.12f, if (g.crossChained) p.bad else p.text, Paint.Align.CENTER)
-        if (g.crossChained) label(c, "CROSS-CHAIN", (ringX + cassX) / 2, r.bottom - h * 0.13f, h * 0.11f, p.bad, Paint.Align.CENTER)
+        label(c, if (g.crossChained) "CROSS-CHAIN" else "CHAIN LINE OK", (ringX + cassX) / 2, r.bottom - h * 0.13f, h * 0.11f, if (g.crossChained) p.bad else p.good, Paint.Align.CENTER)
     }
 
     /** Title and W′ on top, to the top (or the climb's size) large, the climb's profile by grade, then four stats. */
@@ -955,7 +1112,7 @@ class FieldPainter(context: Context) {
         c.restore()
         val statusW = targetR.width() * 0.3f
         number(c, pc.target, "W", RectF(targetR.left + targetR.width() * 0.05f, targetR.top + targetR.height() * 0.12f, targetR.right - statusW, targetR.bottom - targetR.height() * 0.12f), p.text, p.dim, 0.82f, unitScale = 0.25f)
-        label(c, statusLabel(pc.status), targetR.right - targetR.width() * 0.03f, targetR.centerY() - targetR.height() * 0.13f, targetR.height() * 0.26f, color, Paint.Align.RIGHT, statusW)
+        label(c, TargetBand.cue(pc.status, pc.output, pc.low, pc.high, "W"), targetR.right - targetR.width() * 0.03f, targetR.centerY() - targetR.height() * 0.13f, targetR.height() * 0.26f, color, Paint.Align.RIGHT, statusW)
 
         gauge(c, pc.low, pc.high, pc.output, gaugeR, p, color)
         row(statsR, pc.stats.size.coerceAtLeast(1), r.width() * 0.03f).forEachIndexed { i, cell -> pc.stats.getOrNull(i)?.let { stat(c, p, it, cell) } }

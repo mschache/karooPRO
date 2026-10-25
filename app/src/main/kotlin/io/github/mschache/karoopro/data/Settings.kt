@@ -94,6 +94,11 @@ data class Settings(
     val colorMode: ColorMode = ColorMode.TINT,
     val theme: ThemeMode = ThemeMode.AUTO,
     val rideTiles: List<Metric> = listOf(Metric.ELAPSED_TIME, Metric.DISTANCE, Metric.CADENCE, Metric.CALORIES),
+    /** The cadence band drawn on a cadence tile. */
+    val cadenceLow: Int = 85,
+    val cadenceHigh: Int = 95,
+    /** A slim line over the big number with what the Karoo's own top bar lacks: sunset and temperature. */
+    val statusLine: Boolean = true,
     val lapFields: List<LapMetric> = listOf(LapMetric.TIME, LapMetric.POWER, LapMetric.SPEED, LapMetric.HR),
     /** Critical power for W' balance in watts; null uses the FTP from the Karoo profile. */
     val criticalPower: Int? = null,
@@ -122,6 +127,8 @@ data class Settings(
             bigMetric = bigMetric.takeIf { it in cycle } ?: cycle.first(),
             heroCards = heroCards?.filter { it.selectable }?.takeIf { it.size >= 2 }?.take(2),
             rideTiles = (rideTiles + Settings().rideTiles).take(4),
+            cadenceLow = cadenceLow.coerceIn(CADENCE_MIN, CADENCE_MAX - 5),
+            cadenceHigh = cadenceHigh.coerceIn(cadenceLow.coerceIn(CADENCE_MIN, CADENCE_MAX - 5) + 5, CADENCE_MAX),
             lapFields = (lapFields + Settings().lapFields).take(4),
             wPrimeJoules = wPrimeJoules.coerceIn(1_000, 100_000),
             criticalPower = criticalPower?.takeIf { it in 50..1000 },
@@ -168,5 +175,7 @@ data class Settings(
 
     companion object {
         const val STRIP_MAX = 6
+        const val CADENCE_MIN = 40
+        const val CADENCE_MAX = 140
     }
 }

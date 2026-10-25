@@ -46,6 +46,8 @@ class DemoSource(
     private val overlayMode: Int = 0,
     liveCoach: CoachInfo? = null,
     override val nowMs: Long = 0L,
+    /** False: no route, so nothing to go and no arrival time. */
+    private val navigating: Boolean = true,
 ) : RideSource {
     override val profile: Profile = profile.takeIf { it.powerZones.isNotEmpty() } ?: Profile.DEFAULT
     private val ftp = this.profile.ftp.coerceAtLeast(100).toDouble()
@@ -127,6 +129,7 @@ class DemoSource(
     ).mapValues { it.value }
 
     override fun value(metric: Metric): Double? {
+        if (!navigating && metric in setOf(Metric.TO_GO, Metric.ETA, Metric.CLIMB_LEFT)) return null
         if (noPowerMeter && metric.name.contains("POWER") || noPowerMeter && metric in setOf(Metric.NP, Metric.IF, Metric.TSS, Metric.VI, Metric.WKG, Metric.FTP_PERCENT, Metric.WORK, Metric.W_PRIME, Metric.W_PRIME_EMPTY)) return null
         return values[metric]
     }
@@ -215,6 +218,9 @@ class DemoSource(
     }
 
     override val fuel = FuelSnapshot(burnedG = 182.0, eatenG = 125.0, drankMl = 900.0, movingS = 5_833 + t)
+
+    /** Nine full 10-minute blocks (climbs among them), then the running one. */
+    override val calorieBlocks = listOf(118.0, 142.0, 131.0, 176.0, 188.0, 124.0, 153.0, 169.0, 140.0, 61.0 + t * 0.2)
 
     override val workout: WorkoutState
         get() {
