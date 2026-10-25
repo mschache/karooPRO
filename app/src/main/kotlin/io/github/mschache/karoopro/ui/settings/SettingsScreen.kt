@@ -78,7 +78,7 @@ fun AboutScreen() {
     Column(Modifier.fillMaxSize().padding(12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         val c = MaterialTheme.colorScheme.onBackground
         Text("Pangu Dash ${BuildConfig.VERSION_NAME}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = c)
-        Text("Free and open source (Apache-2.0): github.com/mschache/karooPRO", color = c, fontSize = 13.sp)
+        Text("Free and open source (Apache-2.0): github.com/mschache/pangu-dash", color = c, fontSize = 13.sp)
         Text("Weather data by Open-Meteo.com (CC BY 4.0).", color = c, fontSize = 13.sp)
         Text("Zone colors follow the Karoo palette as sampled by the open-source BigNum extension.", color = c, fontSize = 13.sp)
         Text(
