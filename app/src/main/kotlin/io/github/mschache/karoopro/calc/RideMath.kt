@@ -141,6 +141,56 @@ class TimeInZone(zoneCount: Int = 7) {
     }
 }
 
+/** Saved form of [BlockTotals]. */
+@kotlinx.serialization.Serializable
+data class BlockState(val done: List<Double> = emptyList(), val start: Double? = null, val latest: Double? = null, val seconds: Int = 0)
+
+/**
+ * How much a running total (the Karoo's calories) grew in each block of [blockSeconds] of
+ * recording, fed once a second; keeps the newest [keep] finished blocks.
+ */
+class BlockTotals(private val blockSeconds: Int = 600, private val keep: Int = 12) {
+    private val done = ArrayDeque<Double>()
+    private var start: Double? = null
+    private var latest: Double? = null
+    private var seconds = 0
+
+    fun add(total: Double?) {
+        if (total != null && total.isFinite()) {
+            if (start == null) start = total
+            latest = total
+        }
+        if (++seconds >= blockSeconds) {
+            done.addLast(running)
+            if (done.size > keep) done.removeFirst()
+            start = latest
+            seconds = 0
+        }
+    }
+
+    private val running: Double get() = start?.let { s -> latest?.let { (it - s).coerceAtLeast(0.0) } } ?: 0.0
+
+    /** Finished blocks oldest first, then the running one; empty before the first second. */
+    fun values(): List<Double> = if (done.isEmpty() && seconds == 0) emptyList() else done.toList() + running
+
+    fun reset() {
+        done.clear()
+        start = null
+        latest = null
+        seconds = 0
+    }
+
+    val state: BlockState get() = BlockState(done.toList(), start, latest, seconds)
+
+    fun restore(s: BlockState) {
+        reset()
+        done.addAll(s.done.takeLast(keep))
+        start = s.start
+        latest = s.latest
+        seconds = s.seconds.coerceIn(0, blockSeconds - 1)
+    }
+}
+
 /** Averages of the newest [windowSeconds] samples split into [bars] equal buckets, oldest first. */
 fun bucketAverages(samples: DoubleArray, windowSeconds: Int, bars: Int): List<Double?> {
     val per = windowSeconds / bars

@@ -79,8 +79,13 @@ object FieldModelBuilder {
         ).mapNotNullTo(this) { it.karoo?.typeId }
         s.bigMetrics.mapNotNullTo(this) { it.metric.karoo?.typeId }
         s.heroCards?.mapNotNullTo(this) { it.karoo?.typeId }
+        if (s.statusLine) listOf(Metric.CLOCK, Metric.SUNSET_IN, Metric.TEMPERATURE).mapNotNullTo(this) { it.karoo?.typeId }
         when (panel) {
-            Panel.RIDE -> s.rideTiles.mapNotNullTo(this) { it.karoo?.typeId }
+            Panel.RIDE -> {
+                s.rideTiles.mapNotNullTo(this) { it.karoo?.typeId }
+                // Time and distance tiles show the way along a navigated route.
+                listOf(Metric.DISTANCE, Metric.TO_GO, Metric.ETA, Metric.CLOCK).mapNotNullTo(this) { it.karoo?.typeId }
+            }
             Panel.EFFORT -> {
                 listOf(Metric.GRADE, Metric.VAM, Metric.ASCENT, Metric.DISTANCE).mapNotNullTo(this) { it.karoo?.typeId }
                 add(DataType.Type.DISTANCE_TO_DESTINATION)
@@ -319,6 +324,14 @@ object FieldModelBuilder {
                 number = ZoneColors.blend(zoneColor, 0xFF000000.toInt(), 0.72f)
             }
         }
+        val status = if (!s.statusLine) null else {
+            val clock = src.value(Metric.CLOCK)
+            val sunsetIn = src.value(Metric.SUNSET_IN)?.takeIf { it > 0 }
+            StatusLine(
+                sunset = if (clock != null && sunsetIn != null) Fmt.clock(clock + sunsetIn).takeIf { it != Fmt.NONE } else null,
+                temperature = (src.value(Metric.TEMPERATURE) ?: src.weather?.temperature)?.let { Fmt.temperature(it, u) + "°" },
+            )
+        }
         return HeroModel(
             big = big,
             options = s.bigCycle(src.powerAvailable),
@@ -333,19 +346,58 @@ object FieldModelBuilder {
             dimColor = dim,
             stats = stats,
             cards = cards,
+            status = status,
         )
     }
+
+    /** A Ride tile: its icon and color, and the graphic that fits the value. */
+    private fun tile(src: RideSource, m: Metric, p: Palette, powerColor: Int?, hrColor: Int?): TileModel {
+        val s = src.settings
+        val u = src.profile.units
+        val look = TileStyle.look(m)
+        val accent = TileStyle.color(look.family, p, powerColor, hrColor)
+        val route = TileGraphics.routeFraction(src.value(Metric.DISTANCE), src.value(Metric.TO_GO))
+        fun line() = m.graph?.let { TileGraphic.Line(src.history(it, 300)) }
+        val graphic: TileGraphic? = when (m) {
+            Metric.ELAPSED_TIME, Metric.TOTAL_TIME -> {
+                val elapsed = src.value(m)
+                TileGraphics.timeFraction(elapsed, src.value(Metric.CLOCK), src.value(Metric.ETA), src.nowMs)
+                    ?.let { TileGraphic.Segments(TileGraphics.spread(it)) }
+                    ?: TileGraphic.Segments(TileGraphics.hours(elapsed))
+            }
+            Metric.DISTANCE -> route?.let { TileGraphic.Route(it) } ?: line()
+            Metric.TO_GO -> route?.let { TileGraphic.Route(it) }
+            Metric.CALORIES -> src.calorieBlocks.takeIf { it.isNotEmpty() }?.let { b -> TileGraphic.Bars(b.takeLast(CALORIE_BARS).map { it.toFloat() }) } ?: line()
+            Metric.CADENCE, Metric.AVG_CADENCE -> {
+                val (min, max) = TileGraphics.cadenceScale(s.cadenceLow, s.cadenceHigh)
+                TileGraphic.Band(src.value(m)?.toFloat(), s.cadenceLow.toFloat(), s.cadenceHigh.toFloat(), min, max)
+            }
+            else -> line()
+        }
+        val graphColor = if (look.family == TileFamily.OTHER) p.accent else accent
+        return TileModel(m.label, m.format(src.value(m), u), m.unit(u), graphic, graphColor, look.icon, accent, showLabel = !look.named)
+    }
+
+    private const val CALORIE_BARS = 8
 
     private fun content(src: RideSource, panel: Panel, p: Palette): PanelContent {
         val s = src.settings
         val profile = src.profile
         val u = profile.units
         return when (panel) {
-            Panel.RIDE -> RideContent(
-                s.rideTiles.map { m ->
-                    TileModel(m.label, m.format(src.value(m), u), m.unit(u), m.graph?.let { src.history(it, 300) }, p.accent)
-                },
-            )
+            Panel.RIDE -> {
+                val powerZone = ZoneMath.zoneOf(src.value(Metric.POWER_3S) ?: src.value(Metric.POWER), profile.powerZones)
+                val hrZone = ZoneMath.zoneOf(src.value(Metric.HEART_RATE), profile.hrZones)
+                RideContent(
+                    s.rideTiles.map { m ->
+                        tile(
+                            src, m, p,
+                            powerColor = powerZone?.let { ZoneColors.color(ZoneKind.POWER, it, profile.powerZones.size) },
+                            hrColor = hrZone?.let { ZoneColors.color(ZoneKind.HR, it, profile.hrZones.size) },
+                        )
+                    },
+                )
+            }
 
             Panel.EFFORT -> {
                 val usePower = src.powerAvailable || src.history(Metric.POWER_3S, 600).any { it != null }
@@ -393,7 +445,12 @@ object FieldModelBuilder {
                     fields = s.lapFields.map { lm ->
                         val cur = src.value(lm.current)
                         val prev = if (hasPrevious) src.value(lm.previous) else null
-                        LapFieldModel(lm.label, lm.format(cur, u), lm.unit(u), prev?.let { lm.format(it, u) }, if (hasPrevious) LapCompare.trend(cur, prev) else Trend.NONE)
+                        LapFieldModel(
+                            lm.label, lm.format(cur, u), lm.unit(u), prev?.let { lm.format(it, u) },
+                            // A running lap's time or distance is always short of the last: no arrow for those.
+                            if (hasPrevious && lm.comparable) LapCompare.trend(cur, prev) else Trend.NONE,
+                            delta = lm.delta(cur, prev, u),
+                        )
                     },
                 )
             }

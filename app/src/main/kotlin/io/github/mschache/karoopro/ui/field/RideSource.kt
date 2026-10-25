@@ -59,6 +59,8 @@ interface RideSource {
     val pace: PaceState?
     /** Carbs burned, eaten and drink so far this ride. */
     val fuel: FuelSnapshot
+    /** The Karoo's calories per 10 minutes of riding, oldest first, the running block last. */
+    val calorieBlocks: List<Double>
     val workout: WorkoutState?
     /** The planned step after the running one, when Pangu Coach's relay matched the workout. */
     val workoutNext: PlanStep?
@@ -99,6 +101,7 @@ class LiveSource(private val g: AppGraph) : RideSource {
     override val results get() = g.results.results.value
     override val pace get() = g.pace.state()
     override val fuel get() = g.recorder.read { fuel.state }
+    override val calorieBlocks get() = g.recorder.read { calorieBlocks.values() }
 
     override val workout get() = g.workout.state.value
     override val workoutNext get() = g.workout.next.value

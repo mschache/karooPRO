@@ -191,4 +191,27 @@ enum class LapMetric(
         Format.ELEVATION -> Fmt.elevationUnit(u)
         else -> ""
     }
+
+    /**
+     * The change against the previous lap, "+20" or "−1.1", for averages only: time, distance,
+     * ascent and max keep growing through the lap, so they aren't compared. Null without both laps.
+     */
+    /** Averages compare across laps; time, distance, ascent and max keep growing through the lap. */
+    val comparable: Boolean get() = this in setOf(POWER, NP, SPEED, HR, CADENCE)
+
+    fun delta(current: Double?, previous: Double?, u: UnitPrefs): String? {
+        if (!comparable || current == null || previous == null || !current.isFinite() || !previous.isFinite()) return null
+        val d = when (this) {
+            POWER, NP, HR, CADENCE -> (current - previous).let { kotlin.math.round(it) }
+            SPEED -> Fmt.speedValue(current, u) - Fmt.speedValue(previous, u)
+            TIME, DISTANCE, MAX_POWER, ASCENT -> return null
+        }
+        val digits = if (this == SPEED) 1 else 0
+        val text = Fmt.decimal(kotlin.math.abs(d), digits)
+        return when {
+            text.trim('0', '.').isEmpty() -> "±0"
+            d > 0 -> "+$text"
+            else -> "−$text"
+        }
+    }
 }

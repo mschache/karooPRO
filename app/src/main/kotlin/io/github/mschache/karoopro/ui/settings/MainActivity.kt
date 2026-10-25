@@ -129,6 +129,21 @@ class MainActivity : ComponentActivity() {
                     )
                     java.io.File(dir, "${shot.name}.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
                 }
+                // Review set for the Ride tiles, lap pills, workout cue and chain line, dark and light.
+                for (dark in listOf(true, false)) {
+                    val theme = if (dark) "dark" else "light"
+                    for ((name, panel, navigating) in listOf(
+                        Triple("ride", Panel.RIDE, true), Triple("ride-noroute", Panel.RIDE, false),
+                        Triple("lap", Panel.LAP, true), Triple("workout", Panel.WORKOUT, true), Triple("bike", Panel.BIKE, true),
+                    )) {
+                        val s = io.github.mschache.karoopro.data.Settings()
+                        val model = io.github.mschache.karoopro.ui.field.FieldModelBuilder.build(
+                            io.github.mschache.karoopro.ui.field.DemoSource(s, graph.hub.profile.value, t = 30, navigating = navigating),
+                            panel, Panel.PANELS, w / density, h / density, density, interactive = false, systemDark = dark,
+                        )
+                        java.io.File(dir, "review-$name-$theme.png").outputStream().use { painter.paint(model, w, h).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+                    }
+                }
                 // The app icon and the field-list icon, as Android draws them.
                 for ((name, res, size) in listOf(Triple("icon-launcher", io.github.mschache.karoopro.R.mipmap.ic_launcher, 432), Triple("icon-field", io.github.mschache.karoopro.R.drawable.ic_karoopro, 96))) {
                     val d = androidx.core.content.ContextCompat.getDrawable(this@MainActivity, res) ?: continue

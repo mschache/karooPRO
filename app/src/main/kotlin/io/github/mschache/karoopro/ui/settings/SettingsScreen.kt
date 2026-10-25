@@ -182,6 +182,7 @@ fun SettingsScreen() {
         Choice(ColorMode.entries, settings.colorMode, { it.label }) { v -> update { it.copy(colorMode = v) } }
         Section("Theme")
         Choice(ThemeMode.entries, settings.theme, { it.label }) { v -> update { it.copy(theme = v) } }
+        Toggle("Sunset and temperature over the big number", settings.statusLine) { v -> update { it.copy(statusLine = v) } }
 
         Section("Ride tiles")
         settings.rideTiles.forEachIndexed { i, m ->
@@ -192,6 +193,15 @@ fun SettingsScreen() {
                 }
             }
         }
+        // The green band on a cadence tile.
+        Stepper("Cadence from", "${settings.cadenceLow} rpm",
+            onMinus = { update { s -> s.copy(cadenceLow = s.cadenceLow - 5) } },
+            onPlus = { update { s -> s.copy(cadenceLow = s.cadenceLow + 5, cadenceHigh = maxOf(s.cadenceHigh, s.cadenceLow + 10)) } },
+        )
+        Stepper("Cadence to", "${settings.cadenceHigh} rpm",
+            onMinus = { update { s -> s.copy(cadenceHigh = s.cadenceHigh - 5, cadenceLow = minOf(s.cadenceLow, s.cadenceHigh - 10)) } },
+            onPlus = { update { s -> s.copy(cadenceHigh = s.cadenceHigh + 5) } },
+        )
         Section("Lap fields")
         settings.lapFields.forEachIndexed { i, m ->
             PickRow("Field ${i + 1}", m.label) {
