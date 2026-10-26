@@ -138,7 +138,7 @@ Open the **Pangu Dash** app on the Karoo to:
 - Set the workout alert style, beeps and the pop-up on other pages.
 - Turn weather on or off.
 
-**Preview** shows the real field with demo data, so you can check every panel without riding. **Map** there shows the Dash Panels field instead. Once Pangu Coach is set up, the Coach panel there shows its real latest message.
+**Preview** shows the real field with demo data, so you can check every panel without riding. Switch between **Dash** and **Dash Panels** at the top to see either field. Once Pangu Coach is set up, the Coach panel there shows its real latest message.
 
 ## Good to know
 
@@ -175,7 +175,7 @@ The workflow attaches `app-release.apk` and `manifest.json`, which the Karoo use
 - **License:** Pangu Dash is licensed under Apache-2.0.
 - **SDK:** Built on Hammerhead's [karoo-ext](https://github.com/hammerheadnav/karoo-ext) (Apache-2.0).
 - **Weather:** Data by [Open-Meteo.com](https://open-meteo.com) (CC BY 4.0).
-- **Font:** Numbers (Bold) and labels (Medium) use [Oswald](https://github.com/googlefonts/OswaldFont) (SIL Open Font License 1.1, see `LICENSES/OFL-Oswald.txt`).
+- **Fonts:** On the field, numbers (Bold) and labels (Medium) use [Oswald](https://github.com/googlefonts/OswaldFont). The app's screens use Pangu's type: [Archivo](https://github.com/Omnibus-Type/Archivo) Expanded Black Italic, [IBM Plex Mono](https://github.com/IBM/plex) Medium and [Inter Tight](https://github.com/rsms/inter-tight). All under the SIL Open Font License 1.1, see `LICENSES/`.
 - **Other open-source Karoo extensions (Apache-2.0 / MIT):**
   - The Karoo zone colors and the bitmap-number approach come from [BigNum](https://github.com/smartycoder/karoo-bignum).
   - The update throttle follows [ki2](https://github.com/valterc/ki2).

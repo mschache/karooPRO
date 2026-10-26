@@ -21,6 +21,8 @@ data class Palette(
     val warn: Int,
     val bad: Int,
     val push: Int,
+    /** Pangu Coach's accent (unread bar, tap to confirm): its lime on the dark screen, never on a light one. */
+    val coach: Int = accent,
 ) {
     companion object {
         val DARK = Palette(
@@ -35,6 +37,7 @@ data class Palette(
             warn = 0xFFFFC400.toInt(),
             bad = 0xFFFF3B30.toInt(),
             push = 0xFF2E9BFF.toInt(),
+            coach = 0xFFD4F700.toInt(),
         )
         val LIGHT = Palette(
             dark = false,

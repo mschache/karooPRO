@@ -2,24 +2,27 @@ package io.github.mschache.karoopro.ui.settings
 
 import android.content.Context
 import android.widget.FrameLayout
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
 import io.github.mschache.karoopro.graph
 import io.github.mschache.karoopro.ui.field.DemoSource
@@ -34,7 +37,7 @@ data class PreviewOptions(val noPowerMeter: Boolean = false, val overlay: Int = 
 
 /**
  * The real Pangu Dash field, rendered from demo data into this screen. Taps on the field run the same
- * actions as on a ride page (flip panels, switch the big number). "Map" shows the Panels field in a
+ * actions as on a ride page (flip panels, switch the big number). "Dash Panels" shows the Panels field in a
  * map-page-sized slot instead.
  */
 @Composable
@@ -98,13 +101,24 @@ fun PreviewScreen(initial: PreviewOptions = PreviewOptions()) {
     }
 
     Column(Modifier.fillMaxSize()) {
-        Row(Modifier.fillMaxWidth().padding(horizontal = 4.dp)) {
-            FilterChip(selected = options.noPowerMeter, onClick = { options = options.copy(noPowerMeter = !options.noPowerMeter) }, label = { Text("No PM") })
-            FilterChip(selected = options.overlay == 1, onClick = { options = options.copy(overlay = if (options.overlay == 1) 0 else 1) }, label = { Text("Next") }, modifier = Modifier.padding(start = 4.dp))
-            FilterChip(selected = options.overlay == 2, onClick = { options = options.copy(overlay = if (options.overlay == 2) 0 else 2) }, label = { Text("Step") }, modifier = Modifier.padding(start = 4.dp))
-            FilterChip(selected = options.map, onClick = { options = options.copy(map = !options.map) }, label = { Text("Map") }, modifier = Modifier.padding(start = 4.dp))
+        // Which field to show: the full page, or the panels as the map page has them. No PM and the alerts stay adb extras.
+        Row(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
+            FieldTab("Dash", selected = !options.map, Modifier.weight(1f)) { options = options.copy(map = false) }
+            FieldTab("Dash Panels", selected = options.map, Modifier.weight(1f)) { options = options.copy(map = true) }
         }
         AndroidView(factory = { host }, modifier = Modifier.fillMaxSize())
+    }
+}
+
+/**
+ * One of the two fields, in the mono face: the shown one in paper over a paper rule. Not orange: right above the
+ * field's zone colors, nothing else is orange.
+ */
+@Composable
+private fun FieldTab(label: String, selected: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
+    Column(modifier.clickable(onClick = onClick).padding(top = 10.dp, bottom = 6.dp)) {
+        MonoLabel(label, Modifier.padding(horizontal = 2.dp), color = if (selected) Horizon.Paper else Horizon.Second, size = 12.sp)
+        Box(Modifier.padding(top = 6.dp).fillMaxWidth().height(2.dp).background(if (selected) Horizon.Paper else Horizon.Line))
     }
 }
 

@@ -7,14 +7,11 @@ import androidx.activity.compose.setContent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.darkColorScheme
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import io.github.mschache.karoopro.data.Panel
 import io.github.mschache.karoopro.graph
 import kotlinx.coroutines.launch
@@ -161,10 +158,10 @@ class MainActivity : ComponentActivity() {
             map = intent.getBooleanExtra("map", false),
         )
         setContent {
-            MaterialTheme(colorScheme = darkColorScheme(primary = Color(0xFF2E9BFF), onPrimary = Color.Black)) {
+            HorizonTheme {
                 var screen by remember { mutableStateOf(start) }
                 BackHandler(enabled = screen != Screen.HOME) { screen = Screen.HOME }
-                Box(Modifier.fillMaxSize().background(Color.Black)) {
+                Box(Modifier.fillMaxSize().background(Horizon.Ink)) {
                     when (screen) {
                         Screen.HOME -> HomeScreen { screen = it }
                         Screen.PREVIEW -> PreviewScreen(previewOptions)

@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- The hero's zone ladder: zones up to the current one in color, the current one (Z5) full width, the one above gray.
+<!-- The zone ladder in Pangu Horizon: zones up to the current one in color, the current one (Z5) full width, the one
+     above gray. The bars lean like the PANGU wordmark's italic, and the sky (the top two) sits pushed forward over the
+     horizon gap by exactly the gap's height, as the wordmark's does. Generated: zones as in ZoneColors.
      Inside the 66 dp adaptive-icon safe zone. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="108dp"
@@ -8,10 +10,10 @@
     android:viewportHeight="108">
     <!-- At 80 %: Android shows the middle 72 of 108 units, and the bars want some room. -->
     <group android:pivotX="54" android:pivotY="54" android:scaleX="0.8" android:scaleY="0.8">
-        <path android:fillColor="#FF3A3F45" android:pathData="M39.20,25.80h29.60a4.20,4.20 0 0 1 0,8.40h-29.60a4.20,4.20 0 0 1 0,-8.40z" />
-        <path android:fillColor="#FFFE581F" android:pathData="M30.20,37.80h47.60a4.20,4.20 0 0 1 0,8.40h-47.60a4.20,4.20 0 0 1 0,-8.40z" />
-        <path android:fillColor="#FFFFF500" android:pathData="M39.20,49.80h29.60a4.20,4.20 0 0 1 0,8.40h-29.60a4.20,4.20 0 0 1 0,-8.40z" />
-        <path android:fillColor="#FF00B988" android:pathData="M39.20,61.80h29.60a4.20,4.20 0 0 1 0,8.40h-29.60a4.20,4.20 0 0 1 0,-8.40z" />
-        <path android:fillColor="#FF60EEB2" android:pathData="M39.20,73.80h29.60a4.20,4.20 0 0 1 0,8.40h-29.60a4.20,4.20 0 0 1 0,-8.40z" />
+        <path android:fillColor="#FF3A3F45" android:pathData="M39.96,32.40L75.96,32.40L77.44,24.00L41.44,24.00z" />
+        <path android:fillColor="#FFFE581F" android:pathData="M28.85,44.40L82.85,44.40L84.32,36.00L30.32,36.00z" />
+        <path android:fillColor="#FFFFF500" android:pathData="M27.90,60.00L63.90,60.00L65.38,51.60L29.38,51.60z" />
+        <path android:fillColor="#FF00B988" android:pathData="M25.79,72.00L61.79,72.00L63.27,63.60L27.27,63.60z" />
+        <path android:fillColor="#FF60EEB2" android:pathData="M23.68,84.00L59.68,84.00L61.15,75.60L25.15,75.60z" />
     </group>
 </vector>

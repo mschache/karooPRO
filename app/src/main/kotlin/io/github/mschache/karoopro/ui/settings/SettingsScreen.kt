@@ -1,5 +1,8 @@
 package io.github.mschache.karoopro.ui.settings
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -11,11 +14,13 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.Checkbox
@@ -35,10 +40,12 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.Font
-import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import io.github.mschache.karoopro.BuildConfig
@@ -56,37 +63,82 @@ import kotlinx.coroutines.launch
 
 @Composable
 fun HomeScreen(open: (Screen) -> Unit) {
-    Column(Modifier.fillMaxSize().padding(12.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        // The wordmark in the field's own typeface.
-        Text("Pangu Dash", fontSize = 34.sp, fontFamily = Oswald, color = MaterialTheme.colorScheme.primary)
-        Text("Ride by effort", fontSize = 16.sp, color = MaterialTheme.colorScheme.onBackground)
+    Column(Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 12.dp)) {
+        // A product is its app icon and its name.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AppIcon(52.dp)
+            Spacer(Modifier.width(12.dp))
+            DisplayText("Pangu\nDash", 30.sp)
+        }
+        HorizonLine(Modifier.padding(top = 12.dp, bottom = 10.dp))
+        MonoLabel("Ride by effort", color = Horizon.Paper, size = 12.sp)
         Text(
             "Add a one-field ride page and choose Pangu Dash. Tap the top to switch numbers, the sides to flip\u00A0panels.",
+            Modifier.padding(top = 6.dp),
             fontSize = 13.sp,
-            color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f),
+            lineHeight = 17.sp,
+            color = Horizon.Muted,
         )
-        Button(onClick = { open(Screen.PREVIEW) }, modifier = Modifier.fillMaxWidth()) { Text("Preview") }
-        OutlinedButton(onClick = { open(Screen.SETTINGS) }, modifier = Modifier.fillMaxWidth()) { Text("Settings") }
-        TextButton(onClick = { open(Screen.ABOUT) }, modifier = Modifier.fillMaxWidth()) { Text("About") }
+        Spacer(Modifier.weight(1f))
+        Button(onClick = { open(Screen.PREVIEW) }, Modifier.fillMaxWidth().height(48.dp), shape = HorizonShape) {
+            MonoLabel("Preview", color = Horizon.Ink, size = 13.sp)
+        }
+        OutlinedButton(
+            onClick = { open(Screen.SETTINGS) },
+            Modifier.fillMaxWidth().padding(top = 8.dp).height(48.dp),
+            shape = HorizonShape,
+            border = BorderStroke(1.dp, Horizon.Paper),
+        ) { MonoLabel("Settings", color = Horizon.Paper, size = 13.sp) }
+        TextButton(onClick = { open(Screen.ABOUT) }, Modifier.fillMaxWidth().padding(top = 4.dp)) { MonoLabel("About", size = 12.sp) }
+        LabLockup(Modifier.padding(top = 8.dp))
     }
 }
 
-private val Oswald = FontFamily(Font(R.font.oswald_bold, FontWeight.Bold))
+/** Buttons are square-cornered, as in the brand kit. */
+private val HorizonShape = RoundedCornerShape(2.dp)
+
+/** The app icon as the launcher shows it: the zone ladder on the shared dark tile. */
+@Composable
+private fun AppIcon(size: Dp) {
+    Box(
+        Modifier.size(size).clip(RoundedCornerShape(size * 0.2f)).background(Color(0xFF0B0D10)),
+        contentAlignment = Alignment.Center,
+    ) {
+        // The launcher shows the middle 72 of the icon's 108 units.
+        Image(painterResource(R.drawable.ic_launcher_foreground), null, Modifier.requiredSize(size * 1.5f))
+    }
+}
+
+/** The Pangu Lab lockup: Pangu Dash is a Pangu Lab product. */
+@Composable
+private fun LabLockup(modifier: Modifier = Modifier) {
+    Image(painterResource(R.drawable.pangu_lab_lockup), "Pangu Lab", modifier.width(124.dp))
+}
 
 @Composable
 fun AboutScreen() {
-    Column(Modifier.fillMaxSize().padding(12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        val c = MaterialTheme.colorScheme.onBackground
-        Text("Pangu Dash ${BuildConfig.VERSION_NAME}", fontSize = 20.sp, fontWeight = FontWeight.Bold, color = c)
+    Column(Modifier.fillMaxSize().padding(horizontal = 14.dp, vertical = 12.dp).verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            AppIcon(40.dp)
+            Spacer(Modifier.width(10.dp))
+            Column {
+                DisplayText("Pangu Dash", 17.sp)
+                MonoLabel("Version ${BuildConfig.VERSION_NAME}", Modifier.padding(top = 4.dp))
+            }
+        }
+        HorizonLine(Modifier.padding(vertical = 4.dp))
+        val c = Horizon.Paper
         Text("Free and open source (Apache-2.0): github.com/mschache/pangu-dash", color = c, fontSize = 13.sp)
         Text("Weather data by Open-Meteo.com (CC BY 4.0).", color = c, fontSize = 13.sp)
         Text("Zone colors follow the Karoo palette as sampled by the open-source BigNum extension.", color = c, fontSize = 13.sp)
         Text(
             "The Karoo only shares the running workout step, so the next step's target appears when it starts, or already during the countdown when Pangu Coach has the plan. The countdown is exact.",
-            color = c.copy(alpha = 0.7f),
+            color = Horizon.Muted,
             fontSize = 12.sp,
         )
-        Text("Not affiliated with Hammerhead or SRAM.", color = c.copy(alpha = 0.7f), fontSize = 12.sp)
+        Text("Not affiliated with Hammerhead or SRAM.", color = Horizon.Muted, fontSize = 12.sp)
+        LabLockup(Modifier.padding(top = 12.dp))
+        MonoLabel("A Pangu Lab product", size = 10.sp)
     }
 }
 
@@ -335,7 +387,7 @@ private fun PickerScreen(p: Picker, close: () -> Unit) {
                 HorizontalDivider()
             }
         }
-        TextButton(onClick = close) { Text("Cancel") }
+        TextButton(onClick = close) { MonoLabel("Cancel", color = Horizon.Signal) }
     }
 }
 
@@ -345,13 +397,13 @@ private fun MoveButton(symbol: String, enabled: Boolean, onClick: () -> Unit) {
         Modifier.size(40.dp).clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(symbol, color = MaterialTheme.colorScheme.primary.copy(alpha = if (enabled) 1f else 0.25f), fontSize = 16.sp)
+        Text(symbol, color = if (enabled) Horizon.Signal else Horizon.Fill, fontSize = 16.sp)
     }
 }
 
 @Composable
 private fun Section(title: String) {
-    Text(title.uppercase(), Modifier.padding(top = 14.dp, bottom = 4.dp), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold, fontSize = 13.sp)
+    MonoLabel(title, Modifier.padding(top = 16.dp, bottom = 4.dp), color = Horizon.Signal, size = 12.sp)
 }
 
 @Composable

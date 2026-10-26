@@ -1145,7 +1145,7 @@ class FieldPainter(context: Context) {
         if (cc.unread) {
             c.save()
             c.clipRect(cardR.left, cardR.top, cardR.left + cardR.width() * 0.02f, cardR.bottom)
-            c.drawRoundRect(cardR, radius, radius, fill(p.accent))
+            c.drawRoundRect(cardR, radius, radius, fill(p.coach))
             c.restore()
         }
         val inner = RectF(cardR.left + cardR.width() * 0.05f, cardR.top + cardR.height() * 0.08f, cardR.right - cardR.width() * 0.04f, cardR.bottom - cardR.height() * 0.06f)
@@ -1159,7 +1159,7 @@ class FieldPainter(context: Context) {
         paragraph(c, cc.text, textR, color, maxCap = if (cc.placeholder) textR.height() * 0.1f else textR.height() * 0.2f, minCap = textR.height() * 0.07f)
 
         if (cc.hint.isNotEmpty()) {
-            label(c, cc.hint, hintR.centerX(), hintR.top + hintR.height() * 0.15f, hintR.height() * 0.6f, if (cc.unread) p.accent else p.dim, Paint.Align.CENTER)
+            label(c, cc.hint, hintR.centerX(), hintR.top + hintR.height() * 0.15f, hintR.height() * 0.6f, if (cc.unread) p.coach else p.dim, Paint.Align.CENTER)
         }
     }
 
@@ -1281,13 +1281,13 @@ class FieldPainter(context: Context) {
             val color = if (t.warning) m.palette.warn else m.palette.good
             val dot = cap * 0.36f
             c.drawCircle(statusR.left + dot, top + cap / 2, dot, fill(color))
-            val hintW = label(c, if (t.unread) t.hint else t.age, statusR.right, top, cap, if (t.unread) m.palette.accent else p.dim, Paint.Align.RIGHT, face = medium)
+            val hintW = label(c, if (t.unread) t.hint else t.age, statusR.right, top, cap, if (t.unread) m.palette.coach else p.dim, Paint.Align.RIGHT, face = medium)
             label(c, t.status, statusR.left + dot * 3f, top, cap, color, maxWidth = statusR.width() - dot * 3f - hintW - statusR.height())
         }
         var body = textR
         if (t.unread) {
             val barW = max(3f, m.density * 2f)
-            c.drawRect(RectF(textR.left, textR.top, textR.left + barW, textR.bottom), fill(m.palette.accent))
+            c.drawRect(RectF(textR.left, textR.top, textR.left + barW, textR.bottom), fill(m.palette.coach))
             body = RectF(textR.left + barW * 3f, textR.top, textR.right, textR.bottom)
         }
         val color = if (t.placeholder || !t.unread) p.dim else p.text
