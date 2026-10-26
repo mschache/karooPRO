@@ -23,6 +23,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
@@ -80,7 +81,12 @@ fun HomeScreen(open: (Screen) -> Unit) {
             color = Horizon.Muted,
         )
         Spacer(Modifier.weight(1f))
-        Button(onClick = { open(Screen.PREVIEW) }, Modifier.fillMaxWidth().height(48.dp), shape = HorizonShape) {
+        Button(
+            onClick = { open(Screen.PREVIEW) },
+            Modifier.fillMaxWidth().height(48.dp),
+            shape = HorizonShape,
+            colors = ButtonDefaults.buttonColors(containerColor = Horizon.Signal, contentColor = Horizon.Ink),
+        ) {
             MonoLabel("Preview", color = Horizon.Ink, size = 13.sp)
         }
         OutlinedButton(
@@ -186,7 +192,7 @@ fun SettingsScreen() {
             fontSize = 12.sp,
         )
 
-        Section("Big number (tap it to switch)")
+        Section("Big number", "Tap it on the field to switch")
         BigMetric.entries.forEach { b ->
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Checkbox(checked = b in settings.bigMetrics, onCheckedChange = { on ->
@@ -210,7 +216,7 @@ fun SettingsScreen() {
             fontSize = 12.sp,
         )
 
-        Section("Cards under the big number")
+        Section("Cards", "The two under the big number")
         Toggle("Choose the two cards", settings.heroCards != null) { on ->
             update { it.copy(heroCards = if (on) listOf(Metric.SPEED, Metric.HEART_RATE) else null) }
         }
@@ -245,12 +251,12 @@ fun SettingsScreen() {
                 }
             }
         }
-        // The green band on a cadence tile.
-        Stepper("Cadence from", "${settings.cadenceLow} rpm",
+        Text("Cadence tile: the green band", Modifier.padding(top = 6.dp), color = Horizon.Muted, fontSize = 12.sp)
+        Stepper("From", "${settings.cadenceLow} rpm",
             onMinus = { update { s -> s.copy(cadenceLow = s.cadenceLow - 5) } },
             onPlus = { update { s -> s.copy(cadenceLow = s.cadenceLow + 5, cadenceHigh = maxOf(s.cadenceHigh, s.cadenceLow + 10)) } },
         )
-        Stepper("Cadence to", "${settings.cadenceHigh} rpm",
+        Stepper("To", "${settings.cadenceHigh} rpm",
             onMinus = { update { s -> s.copy(cadenceHigh = s.cadenceHigh - 5, cadenceLow = minOf(s.cadenceLow, s.cadenceHigh - 10)) } },
             onPlus = { update { s -> s.copy(cadenceHigh = s.cadenceHigh + 5) } },
         )
@@ -266,12 +272,14 @@ fun SettingsScreen() {
 
         Section("W′ balance")
         val ftp = context.graph.hub.profile.collectAsState().value.ftp
-        Stepper("CP", settings.criticalPower?.let { "$it W" } ?: "FTP ($ftp W)",
+        Stepper("CP", "${settings.criticalPower ?: ftp} W",
             onMinus = { update { s -> s.copy(criticalPower = ((s.criticalPower ?: ftp) - 5)) } },
             onPlus = { update { s -> s.copy(criticalPower = ((s.criticalPower ?: ftp) + 5)) } },
         )
         if (settings.criticalPower != null) {
             TextButton(onClick = { update { it.copy(criticalPower = null) } }) { Text("Use FTP from the Karoo profile") }
+        } else {
+            Text("Your FTP from the Karoo profile", color = Horizon.Muted, fontSize = 12.sp)
         }
         Stepper("W′", "${settings.wPrimeJoules / 1000.0} kJ",
             onMinus = { update { s -> s.copy(wPrimeJoules = s.wPrimeJoules - 500) } },
@@ -317,7 +325,7 @@ fun SettingsScreen() {
         Text("A tap in the middle of the Fuel panel logs", Modifier.padding(top = 4.dp), color = MaterialTheme.colorScheme.onBackground.copy(alpha = 0.7f), fontSize = 12.sp)
         Choice(FuelItem.entries, settings.tapLogs, { it.label.lowercase().replaceFirstChar { c -> c.uppercase() } }) { v -> update { it.copy(tapLogs = v) } }
 
-        Section("Pacing (while navigating)")
+        Section("Pacing", "While you navigate a route")
         Stepper("Flat", "${settings.paceIntensity}% FTP",
             onMinus = { update { s -> s.copy(paceIntensity = s.paceIntensity - 5) } },
             onPlus = { update { s -> s.copy(paceIntensity = s.paceIntensity + 5) } },
@@ -348,7 +356,7 @@ fun SettingsScreen() {
         }
         Toggle("Show segment gap, workout target and distance to the top when they matter", settings.stripContext) { v -> update { it.copy(stripContext = v) } }
 
-        Section("Map layers (while navigating)")
+        Section("Map layers", "While you navigate a route")
         Toggle("Wind on the route ahead (green tail, yellow cross, red head)", settings.mapWindRoute) { v -> update { it.copy(mapWindRoute = v) } }
         Toggle("Climbs by grade (grey to black band, darker = steeper)", settings.mapClimbs) { v -> update { it.copy(mapClimbs = v) } }
         Toggle("Wind arrows every 5 km", settings.mapWindArrows) { v -> update { it.copy(mapWindArrows = v) } }
@@ -387,23 +395,25 @@ private fun PickerScreen(p: Picker, close: () -> Unit) {
                 HorizontalDivider()
             }
         }
-        TextButton(onClick = close) { MonoLabel("Cancel", color = Horizon.Signal) }
+        TextButton(onClick = close) { MonoLabel("Cancel", color = Horizon.Paper) }
     }
 }
 
 @Composable
 private fun MoveButton(symbol: String, enabled: Boolean, onClick: () -> Unit) {
     Box(
-        Modifier.size(40.dp).clickable(enabled = enabled, onClick = onClick),
+        Modifier.size(48.dp).clickable(enabled = enabled, onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        Text(symbol, color = if (enabled) Horizon.Signal else Horizon.Fill, fontSize = 16.sp)
+        Text(symbol, color = if (enabled) Horizon.Paper else Horizon.Fill, fontSize = 16.sp)
     }
 }
 
+/** A section title in the mono face (it fits about 24 characters), and what it's about below it. */
 @Composable
-private fun Section(title: String) {
-    MonoLabel(title, Modifier.padding(top = 16.dp, bottom = 4.dp), color = Horizon.Signal, size = 12.sp)
+private fun Section(title: String, hint: String? = null) {
+    MonoLabel(title, Modifier.padding(top = 16.dp, bottom = if (hint == null) 4.dp else 2.dp), color = Horizon.Signal, size = 12.sp)
+    hint?.let { Text(it, Modifier.padding(bottom = 4.dp), color = Horizon.Muted, fontSize = 12.sp) }
 }
 
 @Composable
@@ -438,8 +448,8 @@ private fun Stepper(label: String, value: String, onMinus: () -> Unit, onPlus: (
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(label, Modifier.width(56.dp), color = MaterialTheme.colorScheme.onBackground, fontSize = 14.sp, maxLines = 1)
         // Compact buttons leave room for values like "500 ml/h" on the Karoo's narrow screen.
-        OutlinedButton(onClick = onMinus, Modifier.size(width = 48.dp, height = 40.dp), contentPadding = PaddingValues(0.dp)) { Text("−") }
+        OutlinedButton(onClick = onMinus, Modifier.size(48.dp), contentPadding = PaddingValues(0.dp)) { Text("−") }
         Text(value, Modifier.weight(1f).padding(horizontal = 6.dp), color = MaterialTheme.colorScheme.onBackground, fontWeight = FontWeight.Bold, fontSize = 14.sp, maxLines = 1, softWrap = false)
-        OutlinedButton(onClick = onPlus, Modifier.size(width = 48.dp, height = 40.dp), contentPadding = PaddingValues(0.dp)) { Text("+") }
+        OutlinedButton(onClick = onPlus, Modifier.size(48.dp), contentPadding = PaddingValues(0.dp)) { Text("+") }
     }
 }

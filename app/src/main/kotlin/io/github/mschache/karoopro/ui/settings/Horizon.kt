@@ -26,7 +26,9 @@ import io.github.mschache.karoopro.R
 
 /**
  * Pangu Horizon (~/Pangu/brand, pangu-brand 1.3.0) for the app's own screens: ink and paper do the work, signal orange
- * is the one accent. The field keeps its own look: zone colors are data, and next to them nothing else is orange.
+ * is the one accent. Controls (checkboxes, switches, radios) are paper; orange is kept for section labels, the main
+ * button and the horizon line, so it still stands out. The field keeps its own look: zone colors are data, and next to
+ * them nothing else is orange.
  */
 object Horizon {
     val Ink = Color(0xFF111111)
@@ -35,6 +37,9 @@ object Horizon {
     val Cell = Color(0xFF1C1C1B)
     val Fill = Color(0xFF2A2A28)
     val Line = Color(0x29F5F4F0)
+
+    /** Borders of controls: 3.6:1 on ink, enough for a boundary (WCAG 1.4.11). */
+    val Outline = Color(0xFF6E6C67)
     val Muted = Color(0xFFAEACA4)
     val Second = Color(0xFF8A877F)
 
@@ -60,7 +65,8 @@ fun HorizonTheme(content: @Composable () -> Unit) {
     fun TextStyle.text() = copy(fontFamily = Horizon.Text, lineHeight = 1.3.em)
     MaterialTheme(
         colorScheme = darkColorScheme(
-            primary = Horizon.Signal,
+            // Material's controls take the primary color: paper, not orange (see above).
+            primary = Horizon.Paper,
             onPrimary = Horizon.Ink,
             secondary = Horizon.Paper,
             onSecondary = Horizon.Ink,
@@ -70,9 +76,12 @@ fun HorizonTheme(content: @Composable () -> Unit) {
             onSurface = Horizon.Paper,
             surfaceVariant = Horizon.Cell,
             onSurfaceVariant = Horizon.Muted,
+            surfaceContainerLowest = Horizon.Ink,
+            surfaceContainerLow = Horizon.Cell,
             surfaceContainer = Horizon.Cell,
             surfaceContainerHigh = Horizon.Fill,
-            outline = Horizon.Line,
+            surfaceContainerHighest = Horizon.Fill,
+            outline = Horizon.Outline,
             outlineVariant = Horizon.Line,
         ),
         typography = Typography(

@@ -2,11 +2,13 @@ package io.github.mschache.karoopro.ui.settings
 
 import android.content.Context
 import android.widget.FrameLayout
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -19,7 +21,11 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -73,13 +79,12 @@ fun PreviewScreen(initial: PreviewOptions = PreviewOptions()) {
                     liveCoach = coach, nowMs = if (coach != null) System.currentTimeMillis() else 0L,
                 )
                 if (o.map) {
-                    // About what a map page hands a full-width field.
-                    val mapH = (w * MAP_SLOT_RATIO).toInt()
                     val model = FieldModelBuilder.compact(
                         source, graph.mapPanels.shown(), graph.mapPanels.visiblePanels(), density,
                         interactive = true, systemDark = FieldRenderer.isNight(context),
                     )
-                    host.show(FieldRenderer.panelsField(context, model, w, mapH), mapH)
+                    // The host is the map page's slot here (see below).
+                    host.show(FieldRenderer.panelsField(context, model, w, h))
                 } else {
                     val model = FieldModelBuilder.build(
                         source, graph.panels.shown(), graph.panels.visiblePanels(), w / density, h / density, density,
@@ -106,7 +111,27 @@ fun PreviewScreen(initial: PreviewOptions = PreviewOptions()) {
             FieldTab("Dash", selected = !options.map, Modifier.weight(1f)) { options = options.copy(map = false) }
             FieldTab("Dash Panels", selected = options.map, Modifier.weight(1f)) { options = options.copy(map = true) }
         }
-        AndroidView(factory = { host }, modifier = Modifier.fillMaxSize())
+        // Dash Panels sits under the map at the size the map page gives it; Dash fills the page.
+        if (options.map) MapPlaceholder(Modifier.weight(1f).fillMaxWidth())
+        AndroidView(
+            factory = { host },
+            modifier = if (options.map) Modifier.fillMaxWidth().aspectRatio(1f / MAP_SLOT_RATIO) else Modifier.fillMaxWidth().weight(1f),
+        )
+    }
+}
+
+/** Stands in for the map above the Dash Panels field: a route on a dark ground. */
+@Composable
+private fun MapPlaceholder(modifier: Modifier) {
+    Box(modifier.background(Horizon.Cell), contentAlignment = Alignment.Center) {
+        Canvas(Modifier.fillMaxSize()) {
+            val route = Path().apply {
+                moveTo(size.width * 0.08f, size.height * 0.92f)
+                cubicTo(size.width * 0.35f, size.height * 0.35f, size.width * 0.6f, size.height * 1.05f, size.width * 0.92f, size.height * 0.12f)
+            }
+            drawPath(route, Horizon.Fill, style = Stroke(width = 8.dp.toPx(), cap = StrokeCap.Round))
+        }
+        MonoLabel("Map", color = Horizon.Second)
     }
 }
 
@@ -129,14 +154,14 @@ class FieldHost(context: Context, private val onSize: (Int, Int) -> Unit) : Fram
         onSize(w, h)
     }
 
-    /** Shows [views] filling the host, or [heightPx] tall at the top (the Panels field's slot). */
-    fun show(views: android.widget.RemoteViews, heightPx: Int = LayoutParams.MATCH_PARENT) {
+    /** Shows [views] filling the host. */
+    fun show(views: android.widget.RemoteViews) {
         val child = views.apply(context, this)
         removeAllViews()
-        addView(child, LayoutParams(LayoutParams.MATCH_PARENT, heightPx))
+        addView(child, LayoutParams(LayoutParams.MATCH_PARENT, LayoutParams.MATCH_PARENT))
     }
 }
 
-/** Height of the preview's map-page slot relative to its width. */
-private const val MAP_SLOT_RATIO = 0.42f
+/** Height of the map page's slot relative to its width: the Karoo 3 gives a full-width field 474 x 143 px. */
+private const val MAP_SLOT_RATIO = 143f / 474f
 
